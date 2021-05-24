@@ -6,7 +6,7 @@ option go_package = "github.com/nathanieltornow/ostracon/shard/shardpb";
 
 service Shard {
   rpc GetOrder(stream OrderRequest) returns (stream OrderResponse);
-  rpc Append(stream AppendRequest) returns (stream CommittedRecord);
+  rpc Append(AppendRequest) returns (CommittedRecord);
 }
 
 message OrderRequest {

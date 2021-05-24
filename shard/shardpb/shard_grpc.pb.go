@@ -19,7 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ShardClient interface {
 	GetOrder(ctx context.Context, opts ...grpc.CallOption) (Shard_GetOrderClient, error)
-	Append(ctx context.Context, opts ...grpc.CallOption) (Shard_AppendClient, error)
+	Append(ctx context.Context, in *AppendRequest, opts ...grpc.CallOption) (*CommittedRecord, error)
 }
 
 type shardClient struct {
@@ -61,35 +61,13 @@ func (x *shardGetOrderClient) Recv() (*OrderResponse, error) {
 	return m, nil
 }
 
-func (c *shardClient) Append(ctx context.Context, opts ...grpc.CallOption) (Shard_AppendClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Shard_ServiceDesc.Streams[1], "/sshardpb.Shard/Append", opts...)
+func (c *shardClient) Append(ctx context.Context, in *AppendRequest, opts ...grpc.CallOption) (*CommittedRecord, error) {
+	out := new(CommittedRecord)
+	err := c.cc.Invoke(ctx, "/sshardpb.Shard/Append", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &shardAppendClient{stream}
-	return x, nil
-}
-
-type Shard_AppendClient interface {
-	Send(*AppendRequest) error
-	Recv() (*CommittedRecord, error)
-	grpc.ClientStream
-}
-
-type shardAppendClient struct {
-	grpc.ClientStream
-}
-
-func (x *shardAppendClient) Send(m *AppendRequest) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *shardAppendClient) Recv() (*CommittedRecord, error) {
-	m := new(CommittedRecord)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return out, nil
 }
 
 // ShardServer is the server API for Shard service.
@@ -97,7 +75,7 @@ func (x *shardAppendClient) Recv() (*CommittedRecord, error) {
 // for forward compatibility
 type ShardServer interface {
 	GetOrder(Shard_GetOrderServer) error
-	Append(Shard_AppendServer) error
+	Append(context.Context, *AppendRequest) (*CommittedRecord, error)
 	mustEmbedUnimplementedShardServer()
 }
 
@@ -108,8 +86,8 @@ type UnimplementedShardServer struct {
 func (UnimplementedShardServer) GetOrder(Shard_GetOrderServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetOrder not implemented")
 }
-func (UnimplementedShardServer) Append(Shard_AppendServer) error {
-	return status.Errorf(codes.Unimplemented, "method Append not implemented")
+func (UnimplementedShardServer) Append(context.Context, *AppendRequest) (*CommittedRecord, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Append not implemented")
 }
 func (UnimplementedShardServer) mustEmbedUnimplementedShardServer() {}
 
@@ -150,30 +128,22 @@ func (x *shardGetOrderServer) Recv() (*OrderRequest, error) {
 	return m, nil
 }
 
-func _Shard_Append_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ShardServer).Append(&shardAppendServer{stream})
-}
-
-type Shard_AppendServer interface {
-	Send(*CommittedRecord) error
-	Recv() (*AppendRequest, error)
-	grpc.ServerStream
-}
-
-type shardAppendServer struct {
-	grpc.ServerStream
-}
-
-func (x *shardAppendServer) Send(m *CommittedRecord) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *shardAppendServer) Recv() (*AppendRequest, error) {
-	m := new(AppendRequest)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
+func _Shard_Append_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AppendRequest)
+	if err := dec(in); err != nil {
 		return nil, err
 	}
-	return m, nil
+	if interceptor == nil {
+		return srv.(ShardServer).Append(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sshardpb.Shard/Append",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShardServer).Append(ctx, req.(*AppendRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 // Shard_ServiceDesc is the grpc.ServiceDesc for Shard service.
@@ -182,17 +152,16 @@ func (x *shardAppendServer) Recv() (*AppendRequest, error) {
 var Shard_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "sshardpb.Shard",
 	HandlerType: (*ShardServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Append",
+			Handler:    _Shard_Append_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "GetOrder",
 			Handler:       _Shard_GetOrder_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-		{
-			StreamName:    "Append",
-			Handler:       _Shard_Append_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

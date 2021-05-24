@@ -1,13 +1,14 @@
 package main
 
 import (
+	"context"
 	pb "github.com/nathanieltornow/ostracon/shard/shardpb"
 	"io"
 )
 
-func (s *Shard) Append(stream pb.Shard_AppendServer) error {
+func (s *Shard) Append(ctx context.Context, request *pb.AppendRequest) (*pb.CommittedRecord, error) {
 
-	return nil
+	return nil, nil
 }
 
 func (s *Shard) GetOrder(stream pb.Shard_GetOrderServer) error {
