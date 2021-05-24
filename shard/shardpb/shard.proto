@@ -1,0 +1,42 @@
+syntax = "proto3";
+package sshardpb;
+
+option go_package = "github.com/nathanieltornow/ostracon/shard/shardpb";
+
+
+service Shard {
+  rpc GetOrder(stream OrderRequest) returns (stream OrderResponse);
+  rpc Append(stream AppendRequest) returns (stream CommittedRecord);
+}
+
+message OrderRequest {
+  int64 NumOfRecords = 1;
+  int64 StartLsn = 2;
+}
+
+message OrderResponse {
+  int64 StartGsn = 1;
+  int64 StartLsn = 2;
+}
+
+message AppendRequest {
+  string Record = 1;
+}
+
+message CommittedRecord {
+  int64 Gsn = 1;
+  string Record = 2;
+}
+
+//message SubscribeRequest {
+//
+//}
+
+
+//message TrimRequest {
+//
+//}
+//
+//message Empty {
+//
+//}
