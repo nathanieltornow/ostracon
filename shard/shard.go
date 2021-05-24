@@ -1,4 +1,4 @@
-package main
+package shard
 
 import (
 	pb "github.com/nathanieltornow/ostracon/shard/shardpb"
