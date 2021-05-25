@@ -1,8 +1,33 @@
 version: "3"
 
 services:
-  shard:
+  sequencershard:
     build:
       context: ./
       dockerfile: Dockerfile
+      args:
+        FLAGS: "-isRoot -isSequencer"
+    ports:
+      - "8000:4000"
 
+#  recordshard1:
+#    build:
+#      context: ./
+#      dockerfile: Dockerfile
+#      args:
+#        FLAGS: "-parentIPAddr localhost:8000"
+#    ports:
+#      - "8001:4000"
+#    depends_on:
+#      - sequencershard
+#
+#  recordshard2:
+#    build:
+#      context: ./
+#      dockerfile: Dockerfile
+#      args:
+#        FLAGS: "-parentIPAddr localhost:8000"
+#    ports:
+#      - "8002:4000"
+#    depends_on:
+#      - sequencershard

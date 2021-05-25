@@ -3,6 +3,7 @@ package shard
 import (
 	pb "github.com/nathanieltornow/ostracon/shard/shardpb"
 	"github.com/nathanieltornow/ostracon/storage"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"net"
 	"sync"
@@ -53,7 +54,7 @@ func (s *Shard) Start(ipAddr string, parentIpAddr string) error {
 			return err
 		}
 	}
-
+	logrus.Infoln("Starting shardserver")
 	if err := grpcServer.Serve(lis); err != nil {
 		return err
 	}
@@ -71,12 +72,32 @@ func (s *Shard) ConnectToNewParent(parentIpAddr string) error {
 	return nil
 }
 
-func (s *Shard) SendOrderRequests() error {
+func (s *Shard) SendOrderRequests(stream pb.Shard_GetOrderClient) error {
+	lsnCopy := s.lsn
+	for range time.Tick(s.batchingIntervall) {
+		if lsnCopy == s.lsn {
+			continue
+		}
+
+		err := stream.Send(&pb.OrderRequest{StartLsn: lsnCopy, NumOfRecords: s.lsn - lsnCopy})
+
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-func (s *Shard) ReceiveOrderResponses() error {
-	return nil
+func (s *Shard) ReceiveOrderResponses(stream pb.Shard_GetOrderClient) error {
+
+	for {
+		in, err := stream.Recv()
+		if err != nil {
+			return err
+		}
+		s.waitMap[in.StartLsn] <- in.StartGsn
+	}
+
 }
 
 func (s *Shard) WaitForGsn(lsn int64) int64 {

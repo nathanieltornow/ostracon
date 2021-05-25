@@ -3,6 +3,7 @@ package shard
 import (
 	"context"
 	pb "github.com/nathanieltornow/ostracon/shard/shardpb"
+	"github.com/sirupsen/logrus"
 	"io"
 )
 
@@ -14,17 +15,37 @@ func (s *Shard) Append(ctx context.Context, request *pb.AppendRequest) (*pb.Comm
 		return nil, err
 	}
 
-	gsn := s.WaitForGsn(lsn)
+	var gsn int64
+	if !s.isRoot {
+		gsn = s.WaitForGsn(lsn)
+	} else {
+		s.lsn += 1
+		gsn = s.lsn
+	}
+
+	s.diskMu.Lock()
+	err = s.disk.Sync()
+	if err != nil {
+		return nil, err
+	}
+	err = s.disk.Commit(lsn, gsn)
+	if err != nil {
+		return nil, err
+	}
+	err = s.disk.Sync()
+	if err != nil {
+		return nil, err
+	}
+	s.diskMu.Unlock()
 
 	return &pb.CommittedRecord{Gsn: gsn, Record: request.Record}, nil
 }
 
 func (s *Shard) GetOrder(stream pb.Shard_GetOrderServer) error {
-
 	if s.isRoot && s.isSequencer {
-
 		for {
 			req, err := stream.Recv()
+			logrus.Infoln(req.StartLsn, req.NumOfRecords)
 			if err == io.EOF {
 				return nil
 			}

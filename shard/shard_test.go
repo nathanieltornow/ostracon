@@ -2,6 +2,7 @@ package shard
 
 import (
 	"context"
+	"fmt"
 	pb "github.com/nathanieltornow/ostracon/shard/shardpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -75,6 +76,8 @@ func TestSimpleOrderClient(t *testing.T) {
 		if err := stream.Send(&pb.OrderRequest{StartLsn: i, NumOfRecords: 1}); err != nil {
 			t.Errorf("Failed to send Order Request")
 		}
+		fmt.Println(i)
+		time.Sleep(time.Second)
 	}
 	stream.CloseSend()
 	<-waitc
