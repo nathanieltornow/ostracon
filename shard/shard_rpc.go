@@ -7,8 +7,16 @@ import (
 )
 
 func (s *Shard) Append(ctx context.Context, request *pb.AppendRequest) (*pb.CommittedRecord, error) {
+	s.diskMu.Lock()
+	lsn, err := s.disk.Write(request.Record)
+	s.diskMu.Unlock()
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	gsn := s.WaitForGsn(lsn)
+
+	return &pb.CommittedRecord{Gsn: gsn, Record: request.Record}, nil
 }
 
 func (s *Shard) GetOrder(stream pb.Shard_GetOrderServer) error {

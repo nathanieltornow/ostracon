@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 	logrus.Infof("Starting shard on %v", shardIpAddr)
 
 	go func() {
-		err := shard.Start(shardIpAddr)
+		err := shard.Start(shardIpAddr, "")
 		if err != nil {
 			logrus.Fatalln("Failed starting shard")
 		}
