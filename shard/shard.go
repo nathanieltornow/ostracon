@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"context"
 	pb "github.com/nathanieltornow/ostracon/shard/shardpb"
 	"github.com/nathanieltornow/ostracon/storage"
 	"github.com/sirupsen/logrus"
@@ -49,15 +50,20 @@ func (s *Shard) Start(ipAddr string, parentIpAddr string) error {
 	pb.RegisterShardServer(grpcServer, s)
 
 	if !s.isRoot {
+		time.Sleep(time.Second * 3)
 		err = s.ConnectToNewParent(parentIpAddr)
 		if err != nil {
 			return err
 		}
+		logrus.Infoln("Connected to Parent", parentIpAddr)
+
 	}
+
 	logrus.Infoln("Starting shardserver")
 	if err := grpcServer.Serve(lis); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -69,31 +75,40 @@ func (s *Shard) ConnectToNewParent(parentIpAddr string) error {
 	client := pb.NewShardClient(conn)
 	s.parentClient = &client
 	s.parentConn = conn
+
+	stream, err := client.GetOrder(context.Background())
+	if err != nil {
+		return err
+	}
+	go s.SendOrderRequests(stream)
+	go s.ReceiveOrderResponses(stream)
 	return nil
 }
 
-func (s *Shard) SendOrderRequests(stream pb.Shard_GetOrderClient) error {
+func (s *Shard) SendOrderRequests(stream pb.Shard_GetOrderClient) {
 	lsnCopy := s.lsn
 	for range time.Tick(s.batchingIntervall) {
+		logrus.Infoln("ticking")
 		if lsnCopy == s.lsn {
 			continue
 		}
-
-		err := stream.Send(&pb.OrderRequest{StartLsn: lsnCopy, NumOfRecords: s.lsn - lsnCopy})
+		orderReq := pb.OrderRequest{StartLsn: lsnCopy, NumOfRecords: s.lsn - lsnCopy}
+		logrus.Infoln("Sending OrderRequest")
+		err := stream.Send(&orderReq)
 
 		if err != nil {
-			return err
+			logrus.Fatalln("Failed to send order requests")
 		}
 	}
-	return nil
 }
 
-func (s *Shard) ReceiveOrderResponses(stream pb.Shard_GetOrderClient) error {
+func (s *Shard) ReceiveOrderResponses(stream pb.Shard_GetOrderClient) {
 
 	for {
 		in, err := stream.Recv()
+		logrus.Infoln("Received", in)
 		if err != nil {
-			return err
+			logrus.Fatalln("Failed to receive order requests")
 		}
 		s.waitMap[in.StartLsn] <- in.StartGsn
 	}

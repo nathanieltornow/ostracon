@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	conn, err := grpc.Dial("localhost:4000", grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:4001", grpc.WithInsecure())
 	if err != nil {
 		logrus.Fatalln("Failed making connection to shard")
 	}

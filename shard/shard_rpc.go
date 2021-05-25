@@ -14,12 +14,13 @@ func (s *Shard) Append(ctx context.Context, request *pb.AppendRequest) (*pb.Comm
 	if err != nil {
 		return nil, err
 	}
-
+	s.lsn += 1
 	var gsn int64
 	if !s.isRoot {
+		logrus.Infoln("hi")
 		gsn = s.WaitForGsn(lsn)
+		logrus.Infoln("hi2")
 	} else {
-		s.lsn += 1
 		gsn = s.lsn
 	}
 

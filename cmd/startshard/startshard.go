@@ -18,18 +18,34 @@ var (
 
 func main() {
 	flag.Parse()
+	if *isRoot {
+		time.Sleep(2 * time.Second)
+		shardIpAddr := *ipAddr
+		shard, err := shard.NewShard("tmp", true, true, time.Second)
+		if err != nil {
+			logrus.Fatalln("Failed creating shard")
+		}
+		logrus.Infof("Starting shard on %v", shardIpAddr)
 
-	shardIpAddr := "localhost:4000"
-	shard, err := shard.NewShard("tmp", true, true, time.Second)
-	if err != nil {
-		logrus.Fatalln("Failed creating shard")
-	}
-	logrus.Infof("Starting shard on %v", shardIpAddr)
+		err = shard.Start(shardIpAddr, "")
+		if err != nil {
+			logrus.Fatalln("Failed starting shard")
+		}
+	} else {
+		time.Sleep(2 * time.Second)
+		shardIpAddr := *ipAddr
+		shard, err := shard.NewShard("tmp", false, true, time.Second)
+		if err != nil {
+			logrus.Fatalln("Failed creating shard")
+		}
+		logrus.Infof("Starting shard on %v", shardIpAddr)
 
-	err = shard.Start(shardIpAddr, "")
-	if err != nil {
-		logrus.Fatalln("Failed starting shard")
+		err = shard.Start(shardIpAddr, *parentIpAddr)
+		if err != nil {
+			logrus.Fatalln("Failed starting shard")
+		}
 	}
+
 	//if *isRoot && *isSequencer {
 	//
 	//	s, err := shard.NewShard(*diskPath, true, true, *batchingInterval)
