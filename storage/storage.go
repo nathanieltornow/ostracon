@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"sync"
 )
 
 /*
@@ -25,6 +26,7 @@ type Storage struct {
 	nextPartitionID int32
 	// partitionID to partition
 	partitions map[int32]*partition
+	mu         sync.Mutex
 }
 
 /*
@@ -122,6 +124,7 @@ func NewStorage(storagePath string) (*Storage, error) {
 Write writes an entry to the default partition and returns the local sequence number.
 */
 func (s *Storage) Write(record string) (int64, error) {
+	s.mu.Lock()
 	lsn := s.nextLSN
 	err := s.writeToPartition(s.nextPartitionID-1, lsn, record)
 	if err != nil {
@@ -129,6 +132,7 @@ func (s *Storage) Write(record string) (int64, error) {
 		return -1, err
 	}
 	s.nextLSN++
+	s.mu.Unlock()
 	return lsn, err
 }
 
@@ -136,11 +140,13 @@ func (s *Storage) Write(record string) (int64, error) {
 ReadLSN reads an entry with local sequence number [lsn] from the default partition.
 */
 func (s *Storage) ReadLSN(lsn int64) (string, error) {
+	s.mu.Lock()
 	record, err := s.readLSNFromPartition(s.nextPartitionID-1, lsn)
 	if err != nil {
 		log.Printf(err.Error())
 		return "", err
 	}
+	s.mu.Unlock()
 	return record, nil
 }
 
@@ -148,11 +154,13 @@ func (s *Storage) ReadLSN(lsn int64) (string, error) {
 ReadGSN reads an entry with global sequence number [gsn] from the default partition.
 */
 func (s *Storage) ReadGSN(gsn int64) (string, error) {
+	s.mu.Lock()
 	record, err := s.readGSNFromPartition(s.nextPartitionID-1, gsn)
 	if err != nil {
 		log.Printf(err.Error())
 		return "", err
 	}
+	s.mu.Unlock()
 	return record, nil
 }
 
@@ -161,11 +169,13 @@ Commit writes an entry with local sequence number [lsn] and global sequence numb
 [gsn] to the appropriate global index file.
 */
 func (s *Storage) Commit(lsn int64, gsn int64) error {
+	s.mu.Lock()
 	err := s.commitToPartition(s.nextPartitionID-1, lsn, gsn)
 	if err != nil {
 		log.Printf(err.Error())
 		return err
 	}
+	s.mu.Unlock()
 	return nil
 }
 
@@ -174,11 +184,13 @@ Delete deletes the logs, local indexes, and global indexes for all records with
 gsn < [gsn].
 */
 func (s *Storage) Delete(gsn int64) error {
+	s.mu.Lock()
 	err := s.deleteFromPartition(s.nextPartitionID-1, gsn)
 	if err != nil {
 		log.Printf(err.Error())
 		return err
 	}
+	s.mu.Unlock()
 	return nil
 }
 
@@ -186,6 +198,7 @@ func (s *Storage) Delete(gsn int64) error {
 Sync commits the storage's in-memory copy of recently written files to disk.
 */
 func (s *Storage) Sync() error {
+	s.mu.Lock()
 	for _, p := range s.partitions {
 		if p.activeSegment != nil {
 			err := p.activeSegment.sync()
@@ -202,6 +215,7 @@ func (s *Storage) Sync() error {
 			}
 		}
 	}
+	s.mu.Unlock()
 	return nil
 }
 
@@ -216,6 +230,7 @@ func (s *Storage) Destroy() error {
 addPartition adds a new partition to storage and returns the partition's id.
 */
 func (s *Storage) addPartition() (int32, error) {
+	s.mu.Lock()
 	p := newPartition(s.storagePath, s.nextPartitionID)
 	err := os.MkdirAll(p.partitionPath, os.ModePerm)
 	if err != nil {
@@ -223,6 +238,7 @@ func (s *Storage) addPartition() (int32, error) {
 	}
 	s.partitions[p.partitionID] = p
 	s.nextPartitionID++
+	s.mu.Unlock()
 	return p.partitionID, nil
 }
 
@@ -230,10 +246,12 @@ func (s *Storage) addPartition() (int32, error) {
 writeToPartition writes an entry to partition with id [partitionID].
 */
 func (s *Storage) writeToPartition(partitionID int32, lsn int64, record string) error {
+	s.mu.Lock()
 	p, in := s.partitions[partitionID]
 	if !in {
 		return fmt.Errorf("Attempted to write to non-existant partition %d", partitionID)
 	}
+	s.mu.Unlock()
 	return p.writeToActiveSegment(lsn, record)
 }
 
