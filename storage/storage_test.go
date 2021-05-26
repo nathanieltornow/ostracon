@@ -20,8 +20,10 @@ func TestSingleReadAndWrite(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	defer disk.Destroy()
+
 	expected := "Hello, World!"
 	lsn, writeErr := disk.Write(expected)
+
 	if writeErr != nil {
 		t.Fatalf(writeErr.Error())
 	}
@@ -212,6 +214,17 @@ func TestDelete(t *testing.T) {
 	}
 	if !exists("disk4/partition0/0000000000000003072.global") {
 		t.Fatalf("Incorrectly deleted disk4/partition0/0000000000000003072.global")
+	}
+}
+
+func BenchmarkWriteAndCommit(b *testing.B) {
+	s, _ := NewStorage("tmp")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s.Write("Hallo")
+		s.Sync()
+		s.Commit(int64(i), int64(i))
+		s.Sync()
 	}
 }
 

@@ -230,7 +230,6 @@ func (s *Storage) Destroy() error {
 addPartition adds a new partition to storage and returns the partition's id.
 */
 func (s *Storage) addPartition() (int32, error) {
-	s.mu.Lock()
 	p := newPartition(s.storagePath, s.nextPartitionID)
 	err := os.MkdirAll(p.partitionPath, os.ModePerm)
 	if err != nil {
@@ -238,7 +237,6 @@ func (s *Storage) addPartition() (int32, error) {
 	}
 	s.partitions[p.partitionID] = p
 	s.nextPartitionID++
-	s.mu.Unlock()
 	return p.partitionID, nil
 }
 
@@ -246,12 +244,10 @@ func (s *Storage) addPartition() (int32, error) {
 writeToPartition writes an entry to partition with id [partitionID].
 */
 func (s *Storage) writeToPartition(partitionID int32, lsn int64, record string) error {
-	s.mu.Lock()
 	p, in := s.partitions[partitionID]
 	if !in {
 		return fmt.Errorf("Attempted to write to non-existant partition %d", partitionID)
 	}
-	s.mu.Unlock()
 	return p.writeToActiveSegment(lsn, record)
 }
 
