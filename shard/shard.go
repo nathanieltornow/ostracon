@@ -14,15 +14,14 @@ import (
 type Shard struct {
 	pb.UnimplementedShardServer
 	disk              *storage.Storage
-	diskMu            sync.Mutex
 	parentConn        *grpc.ClientConn
 	parentClient      *pb.ShardClient
 	waitMapMu         sync.Mutex
-	waitMap           map[int64]chan int64 // maps lsn to pending gsn
+	waitMap           map[int64]chan int64 // maps sn to pending gsn
 	isRoot            bool
 	isSequencer       bool
-	lsn               int64
-	lsnMu             sync.Mutex
+	sn                int64
+	snMu              sync.Mutex
 	batchingIntervall time.Duration
 }
 
@@ -50,7 +49,7 @@ func (s *Shard) Start(ipAddr string, parentIpAddr string) error {
 	pb.RegisterShardServer(grpcServer, s)
 
 	if !s.isRoot {
-		time.Sleep(time.Second * 3)
+		time.Sleep(2 * time.Second)
 		err = s.ConnectToNewParent(parentIpAddr)
 		if err != nil {
 			return err
@@ -86,19 +85,19 @@ func (s *Shard) ConnectToNewParent(parentIpAddr string) error {
 }
 
 func (s *Shard) SendOrderRequests(stream pb.Shard_GetOrderClient) {
-	lsnCopy := s.lsn
+	lsnCopy := s.sn
 	for range time.Tick(s.batchingIntervall) {
-		logrus.Infoln("ticking")
-		if lsnCopy == s.lsn {
+		if lsnCopy == s.sn {
 			continue
 		}
-		orderReq := pb.OrderRequest{StartLsn: lsnCopy, NumOfRecords: s.lsn - lsnCopy}
-		logrus.Infoln("Sending OrderRequest")
+		orderReq := pb.OrderRequest{StartLsn: lsnCopy, NumOfRecords: s.sn - lsnCopy}
 		err := stream.Send(&orderReq)
 
+		lsnCopy = s.sn
 		if err != nil {
 			logrus.Fatalln("Failed to send order requests")
 		}
+
 	}
 }
 
@@ -110,7 +109,16 @@ func (s *Shard) ReceiveOrderResponses(stream pb.Shard_GetOrderClient) {
 		if err != nil {
 			logrus.Fatalln("Failed to receive order requests")
 		}
-		s.waitMap[in.StartLsn] <- in.StartGsn
+
+		s.waitMapMu.Lock()
+		for i := int64(0); i < in.NumOfRecords; i++ {
+			if _, ok := s.waitMap[in.StartLsn+i]; ok {
+				s.waitMap[in.StartLsn+i] <- in.StartGsn + i
+			} else {
+				logrus.Fatalln("Not in map")
+			}
+		}
+		s.waitMapMu.Unlock()
 	}
 
 }

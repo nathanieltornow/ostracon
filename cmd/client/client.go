@@ -17,9 +17,12 @@ func main() {
 
 	shardClient := pb.NewShardClient(conn)
 
-	for range time.Tick(5 * time.Second) {
+	time.Sleep(3 * time.Second)
+	for range time.Tick(1 * time.Second) {
+		logrus.Println("Appending...")
 		record, err := shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo"})
 		if err != nil {
+			logrus.Fatalln(err)
 			return
 		}
 		logrus.Println(record)

@@ -19,7 +19,6 @@ var (
 func main() {
 	flag.Parse()
 	if *isRoot {
-		time.Sleep(2 * time.Second)
 		shardIpAddr := *ipAddr
 		shard, err := shard.NewShard("tmp", true, true, time.Second)
 		if err != nil {
@@ -32,7 +31,6 @@ func main() {
 			logrus.Fatalln("Failed starting shard")
 		}
 	} else {
-		time.Sleep(2 * time.Second)
 		shardIpAddr := *ipAddr
 		shard, err := shard.NewShard("tmp", false, true, time.Second)
 		if err != nil {
