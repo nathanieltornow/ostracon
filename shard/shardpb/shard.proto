@@ -17,6 +17,7 @@ message OrderRequest {
 message OrderResponse {
   int64 StartGsn = 1;
   int64 StartLsn = 2;
+  int64 NumOfRecords = 3;
 }
 
 message AppendRequest {
