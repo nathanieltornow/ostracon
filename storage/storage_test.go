@@ -219,11 +219,22 @@ func TestDelete(t *testing.T) {
 
 func BenchmarkWriteAndCommit(b *testing.B) {
 	s, _ := NewStorage("tmp")
+	defer s.Destroy()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		s.Write("Hallo")
 		s.Sync()
 		s.Commit(int64(i), int64(i))
+		s.Sync()
+	}
+}
+
+func BenchmarkWriteAndSync(b *testing.B) {
+	s, _ := NewStorage("tmp")
+	defer s.Destroy()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s.Write("Hallo")
 		s.Sync()
 	}
 }

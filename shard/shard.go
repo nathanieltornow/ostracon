@@ -6,6 +6,7 @@ import (
 	"github.com/nathanieltornow/ostracon/storage"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"io"
 	"net"
 	"sync"
 	"time"
@@ -23,6 +24,31 @@ type Shard struct {
 	sn                int64
 	snMu              sync.Mutex
 	batchingIntervall time.Duration
+}
+
+func (s *Shard) GetOrder(stream pb.Shard_GetOrderServer) error {
+	if s.isRoot && s.isSequencer {
+		for {
+			req, err := stream.Recv()
+			if err == io.EOF {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+
+			s.snMu.Lock()
+			res := pb.OrderResponse{StartGsn: s.sn, StartLsn: req.StartLsn, NumOfRecords: req.NumOfRecords}
+			s.sn += req.NumOfRecords
+			s.snMu.Unlock()
+
+			if err := stream.Send(&res); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func NewShard(diskPath string, isRoot, isSequencer bool, batchingIntervall time.Duration) (*Shard, error) {
@@ -105,7 +131,6 @@ func (s *Shard) ReceiveOrderResponses(stream pb.Shard_GetOrderClient) {
 
 	for {
 		in, err := stream.Recv()
-		logrus.Infoln("Received", in)
 		if err != nil {
 			logrus.Fatalln("Failed to receive order requests")
 		}

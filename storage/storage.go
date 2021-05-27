@@ -120,6 +120,13 @@ func NewStorage(storagePath string) (*Storage, error) {
 	return s, nil
 }
 
+func (s *Storage) GetNextLsn() int64 {
+	s.mu.Lock()
+	lsn := s.nextLSN
+	s.mu.Unlock()
+	return lsn
+}
+
 /*
 Write writes an entry to the default partition and returns the local sequence number.
 */

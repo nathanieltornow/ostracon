@@ -1,0 +1,17 @@
+syntax = "proto3";
+package recordshardpb;
+
+option go_package = "github.com/nathanieltornow/ostracon/recordshard/recordshardpb";
+
+service RecordShard {
+  rpc Append(AppendRequest) returns (CommittedRecord);
+}
+
+message AppendRequest {
+  string Record = 1;
+}
+
+message CommittedRecord {
+  int64 Gsn = 1;
+  string Record = 2;
+}

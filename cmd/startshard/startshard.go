@@ -20,7 +20,7 @@ func main() {
 	flag.Parse()
 	if *isRoot {
 		shardIpAddr := *ipAddr
-		shard, err := shard.NewShard("tmp", true, true, time.Second)
+		shard, err := shard.NewShard("tmp", true, true, *batchingInterval)
 		if err != nil {
 			logrus.Fatalln("Failed creating shard")
 		}
@@ -32,7 +32,7 @@ func main() {
 		}
 	} else {
 		shardIpAddr := *ipAddr
-		shard, err := shard.NewShard("tmp", false, true, time.Second)
+		shard, err := shard.NewShard("tmp", false, true, *batchingInterval)
 		if err != nil {
 			logrus.Fatalln("Failed creating shard")
 		}
