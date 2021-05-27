@@ -3,49 +3,41 @@ package recordshard
 import (
 	"context"
 	rpb "github.com/nathanieltornow/ostracon/recordshard/recordshardpb"
+	"github.com/nathanieltornow/ostracon/recordshard/storage"
 	spb "github.com/nathanieltornow/ostracon/shard/shardpb"
-	storage2 "github.com/nathanieltornow/ostracon/storage"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"net"
 	"sync"
 	"time"
 )
 
-type committedRecord struct {
-	gsn    int64
+type record struct {
+	lsn    chan int64
 	record string
 }
 
 type RecordShard struct {
 	rpb.UnimplementedRecordShardServer
-	disk             *storage2.Storage
+	disk             *storage.Storage
 	parentConn       *grpc.ClientConn
 	parentClient     *spb.ShardClient
 	batchingInterval time.Duration
-	waitMap          map[int64]chan int64
-	waitMapMu        sync.Mutex
-}
-
-func (rs *RecordShard) Append(ctx context.Context, request *rpb.AppendRequest) (*rpb.CommittedRecord, error) {
-	if rs.parentConn == nil && rs.parentClient == nil {
-		lsn, _ := rs.disk.Write(request.Record)
-		_ = rs.disk.Sync()
-		_ = rs.disk.Commit(lsn, lsn)
-		_ = rs.disk.Sync()
-		return &rpb.CommittedRecord{Gsn: lsn, Record: request.Record}, nil
-	}
-	return nil, nil
+	curLsn           int64
+	curLsnMu         sync.Mutex
+	waitCMap         map[int64]chan int64
+	waitCMapMu       sync.Mutex
+	writeC           chan *record
 }
 
 func NewRecordShard(diskPath string, batchingInterval time.Duration) (*RecordShard, error) {
-	disk, err := storage2.NewStorage(diskPath)
+	disk, err := storage.NewStorage(diskPath, 0, 1, 1000)
 	if err != nil {
 		return nil, err
 	}
 	s := RecordShard{}
 	s.disk = disk
 	s.batchingInterval = batchingInterval
+	s.writeC = make(chan *record, 4096)
 	return &s, nil
 }
 
@@ -84,45 +76,7 @@ func (rs *RecordShard) ConnectToParent(parentIpAddr string) error {
 	if err != nil {
 		return err
 	}
-	go rs.SendOrderRequests(stream)
-	go rs.ReceiveOrderResponses(stream)
+	go rs.sendOrderRequests(stream)
+	go rs.receiveOrderResponses(stream)
 	return nil
-}
-
-func (rs *RecordShard) SendOrderRequests(stream spb.Shard_GetOrderClient) {
-	lsnCopy := rs.disk.GetNextLsn()
-	for range time.Tick(rs.batchingInterval) {
-		lsn := rs.disk.GetNextLsn()
-		if lsnCopy == lsn {
-			continue
-		}
-		orderReq := spb.OrderRequest{StartLsn: lsnCopy, NumOfRecords: lsn - lsnCopy}
-		err := stream.Send(&orderReq)
-
-		lsnCopy = lsn
-		if err != nil {
-			logrus.Fatalln("Failed to send order requests")
-		}
-
-	}
-}
-
-func (rs *RecordShard) ReceiveOrderResponses(stream spb.Shard_GetOrderClient) {
-	for {
-		_ = rs.disk.Sync()
-		in, err := stream.Recv()
-		if err != nil {
-			return
-		}
-		for i := int64(0); i < in.NumOfRecords; i++ {
-			_ = rs.disk.Commit(in.StartLsn+i, in.StartGsn+i)
-		}
-		_ = rs.disk.Sync()
-		rs.waitMapMu.Lock()
-		for i := int64(0); i < in.NumOfRecords; i++ {
-			rs.waitMap[in.StartLsn+i] <- in.StartGsn + i
-			logrus.Fatalln("Not in map")
-		}
-		rs.waitMapMu.Unlock()
-	}
 }
