@@ -1,7 +1,6 @@
 package recordshard
 
 import (
-	"fmt"
 	spb "github.com/nathanieltornow/ostracon/shard/shardpb"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -32,7 +31,6 @@ func (rs *RecordShard) receiveOrderResponses(stream spb.Shard_GetOrderClient) {
 		if err != nil {
 			logrus.Fatalln("Failed to receive order requests")
 		}
-		fmt.Println(in.NumOfRecords)
 		err = rs.disk.Assign(0, in.StartLsn, int32(in.NumOfRecords), in.StartGsn)
 		if err != nil {
 			logrus.Fatalln("Failed to assign", err)

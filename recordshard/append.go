@@ -23,15 +23,18 @@ func (rs *RecordShard) Append(ctx context.Context, request *rpb.AppendRequest) (
 	// wait for lsn, which is assigned after the record was written
 	lsn := <-newRec.lsn
 
+	// put lsn in waitMap to wait for assigned gsn
 	gsnC := make(chan int64)
 	rs.waitCMapMu.Lock()
 	rs.waitCMap[lsn] = gsnC
 	rs.waitCMapMu.Unlock()
 
+	// update lsn to make trigger orderRequests
 	rs.curLsnMu.Lock()
 	rs.curLsn = lsn
 	rs.curLsnMu.Unlock()
 
+	// wait for gsn to be assigned
 	gsn := <-rs.waitCMap[lsn]
 
 	rs.waitCMapMu.Lock()

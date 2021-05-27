@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"log"
+	"math/rand"
 	"time"
 )
 
@@ -17,9 +18,11 @@ func main() {
 	defer conn.Close()
 
 	shardClient := pb.NewRecordShardClient(conn)
-
+	min := 100
+	max := 300
+	random := time.Duration(rand.Intn(max-min) + min)
 	time.Sleep(3 * time.Second)
-	for range time.Tick(3 * time.Second) {
+	for range time.Tick(random * time.Millisecond) {
 		//fmt.Println("appending")
 		start := time.Now()
 		record, err := shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo"})

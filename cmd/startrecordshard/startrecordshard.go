@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	recShard, err := recordshard.NewRecordShard("tmp", time.Millisecond*10000)
+	recShard, err := recordshard.NewRecordShard("tmp", time.Millisecond)
 	if err != nil {
 		logrus.Fatalln("Failed creating shard")
 	}
