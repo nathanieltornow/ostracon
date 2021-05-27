@@ -38,6 +38,8 @@ func NewRecordShard(diskPath string, batchingInterval time.Duration) (*RecordSha
 	s.disk = disk
 	s.batchingInterval = batchingInterval
 	s.writeC = make(chan *record, 4096)
+	s.waitCMap = make(map[int64]chan int64)
+	s.curLsn = -1
 	return &s, nil
 }
 
@@ -56,6 +58,7 @@ func (rs *RecordShard) Start(ipAddr string, parentIpAddr string) error {
 			return err
 		}
 	}
+	go rs.writeAppends()
 	if err := grpcServer.Serve(lis); err != nil {
 		return err
 	}

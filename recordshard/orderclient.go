@@ -1,6 +1,7 @@
 package recordshard
 
 import (
+	"fmt"
 	spb "github.com/nathanieltornow/ostracon/shard/shardpb"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -9,11 +10,11 @@ import (
 func (rs *RecordShard) sendOrderRequests(stream spb.Shard_GetOrderClient) {
 	prevLsn := rs.curLsn
 	for range time.Tick(rs.batchingInterval) {
-		if rs.curLsn == prevLsn {
+		if rs.curLsn == prevLsn || rs.curLsn < 0 {
 			continue
 		}
 		rs.curLsnMu.Lock()
-		orderReq := spb.OrderRequest{StartLsn: prevLsn, NumOfRecords: rs.curLsn - prevLsn}
+		orderReq := spb.OrderRequest{StartLsn: prevLsn + 1, NumOfRecords: rs.curLsn - prevLsn}
 		prevLsn = rs.curLsn
 		rs.curLsnMu.Unlock()
 
@@ -31,10 +32,10 @@ func (rs *RecordShard) receiveOrderResponses(stream spb.Shard_GetOrderClient) {
 		if err != nil {
 			logrus.Fatalln("Failed to receive order requests")
 		}
-
+		fmt.Println(in.NumOfRecords)
 		err = rs.disk.Assign(0, in.StartLsn, int32(in.NumOfRecords), in.StartGsn)
 		if err != nil {
-			logrus.Fatalln("Failed to assign")
+			logrus.Fatalln("Failed to assign", err)
 		}
 
 		rs.waitCMapMu.Lock()
