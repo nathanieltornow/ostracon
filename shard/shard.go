@@ -6,7 +6,6 @@ import (
 	"github.com/nathanieltornow/ostracon/storage"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"io"
 	"net"
 	"sync"
 	"time"
@@ -14,41 +13,15 @@ import (
 
 type Shard struct {
 	pb.UnimplementedShardServer
-	disk              *storage.Storage
-	parentConn        *grpc.ClientConn
-	parentClient      *pb.ShardClient
-	waitMapMu         sync.Mutex
-	waitMap           map[int64]chan int64 // maps sn to pending gsn
+	disk         *storage.Storage
+	parentConn   *grpc.ClientConn
+	parentClient *pb.ShardClient
+	//waitMapMu         sync.Mutex
+	//waitMap           map[int64]chan int64 // maps sn to pending gsn
 	isRoot            bool
-	isSequencer       bool
 	sn                int64
 	snMu              sync.Mutex
 	batchingIntervall time.Duration
-}
-
-func (s *Shard) GetOrder(stream pb.Shard_GetOrderServer) error {
-	if s.isRoot && s.isSequencer {
-		for {
-			req, err := stream.Recv()
-			if err == io.EOF {
-				return nil
-			}
-			if err != nil {
-				return err
-			}
-
-			s.snMu.Lock()
-			res := pb.OrderResponse{StartGsn: s.sn, StartLsn: req.StartLsn, NumOfRecords: req.NumOfRecords}
-			s.sn += req.NumOfRecords
-			s.snMu.Unlock()
-
-			if err := stream.Send(&res); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
 }
 
 func NewShard(diskPath string, isRoot, isSequencer bool, batchingIntervall time.Duration) (*Shard, error) {
@@ -60,9 +33,7 @@ func NewShard(diskPath string, isRoot, isSequencer bool, batchingIntervall time.
 	newShard := &Shard{}
 	newShard.disk = disk
 	newShard.isRoot = isRoot
-	newShard.isSequencer = isSequencer
 	newShard.batchingIntervall = batchingIntervall
-	newShard.waitMap = make(map[int64]chan int64)
 	return newShard, nil
 }
 
@@ -108,55 +79,4 @@ func (s *Shard) ConnectToNewParent(parentIpAddr string) error {
 	go s.SendOrderRequests(stream)
 	go s.ReceiveOrderResponses(stream)
 	return nil
-}
-
-func (s *Shard) SendOrderRequests(stream pb.Shard_GetOrderClient) {
-	lsnCopy := s.sn
-	for range time.Tick(s.batchingIntervall) {
-		if lsnCopy == s.sn {
-			continue
-		}
-		orderReq := pb.OrderRequest{StartLsn: lsnCopy, NumOfRecords: s.sn - lsnCopy}
-		err := stream.Send(&orderReq)
-
-		lsnCopy = s.sn
-		if err != nil {
-			logrus.Fatalln("Failed to send order requests")
-		}
-
-	}
-}
-
-func (s *Shard) ReceiveOrderResponses(stream pb.Shard_GetOrderClient) {
-
-	for {
-		in, err := stream.Recv()
-		if err != nil {
-			logrus.Fatalln("Failed to receive order requests")
-		}
-
-		s.waitMapMu.Lock()
-		for i := int64(0); i < in.NumOfRecords; i++ {
-			if _, ok := s.waitMap[in.StartLsn+i]; ok {
-				s.waitMap[in.StartLsn+i] <- in.StartGsn + i
-			} else {
-				logrus.Fatalln("Not in map")
-			}
-		}
-		s.waitMapMu.Unlock()
-	}
-
-}
-
-func (s *Shard) WaitForGsn(lsn int64) int64 {
-	s.waitMapMu.Lock()
-	gsnC := make(chan int64)
-	s.waitMap[lsn] = gsnC
-	s.waitMapMu.Unlock()
-
-	gsn := <-gsnC
-	s.waitMapMu.Lock()
-	delete(s.waitMap, lsn)
-	s.waitMapMu.Unlock()
-	return gsn
 }

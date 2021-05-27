@@ -6,9 +6,16 @@ seqshard1: go run cmd/startshard/startshard.go -isRoot -isSequencer -ipAddr loca
 #client3: go run cmd/client/client.go
 #client4: go run cmd/client/client.go
 
-recshard: go run cmd/startrecordshard/startrecordshard.go
-client1: go run cmd/client/client.go
-client2: go run cmd/client/client.go
-client3: go run cmd/client/client.go
-client4: go run cmd/client/client.go
-client5: go run cmd/client/client.go
+recshard1: go run cmd/startrecordshard/startrecordshard.go -parentIpAddr localhost:4000 -ipAddr localhost:6000 -storagePath tmp/shard1
+recshard2: go run cmd/startrecordshard/startrecordshard.go -parentIpAddr localhost:4000 -ipAddr localhost:6001 -storagePath tmp/shard2
+
+client1: go run cmd/client/client.go -parentIpAddr localhost:6000
+client2: go run cmd/client/client.go -parentIpAddr localhost:6000
+client3: go run cmd/client/client.go -parentIpAddr localhost:6000
+client4: go run cmd/client/client.go -parentIpAddr localhost:6000
+client5: go run cmd/client/client.go -parentIpAddr localhost:6000
+client6: go run cmd/client/client.go -parentIpAddr localhost:6001
+client7: go run cmd/client/client.go -parentIpAddr localhost:6001
+client8: go run cmd/client/client.go -parentIpAddr localhost:6001
+client9: go run cmd/client/client.go -parentIpAddr localhost:6001
+client10: go run cmd/client/client.go -parentIpAddr localhost:6001

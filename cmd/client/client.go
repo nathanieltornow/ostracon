@@ -2,27 +2,29 @@ package main
 
 import (
 	"context"
+	"flag"
+	"fmt"
 	pb "github.com/nathanieltornow/ostracon/recordshard/recordshardpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"log"
-	"math/rand"
 	"time"
 )
 
+var (
+	parentIpAddr = flag.String("parentIpAddr", "", "")
+)
+
 func main() {
-	conn, err := grpc.Dial("localhost:6000", grpc.WithInsecure())
+	flag.Parse()
+	conn, err := grpc.Dial(*parentIpAddr, grpc.WithInsecure())
 	if err != nil {
 		logrus.Fatalln("Failed making connection to shard")
 	}
 	defer conn.Close()
 
 	shardClient := pb.NewRecordShardClient(conn)
-	min := 100
-	max := 300
-	random := time.Duration(rand.Intn(max-min) + min)
 	time.Sleep(3 * time.Second)
-	for range time.Tick(random * time.Millisecond) {
+	for range time.Tick(time.Second) {
 		//fmt.Println("appending")
 		start := time.Now()
 		record, err := shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo"})
@@ -31,6 +33,6 @@ func main() {
 			logrus.Fatalln(err)
 			return
 		}
-		log.Printf("Received %v with GSN %v; Time: %v", record.Record, record.Gsn, appendTime)
+		fmt.Printf("Received %v with GSN %v; Time: %v", record.Record, record.Gsn, appendTime)
 	}
 }

@@ -12,25 +12,26 @@ import (
 )
 
 type record struct {
-	lsn    chan int64
+	gsn    chan int64
 	record string
 }
 
 type RecordShard struct {
 	rpb.UnimplementedRecordShardServer
 	disk             *storage.Storage
+	diskMu           sync.Mutex
 	parentConn       *grpc.ClientConn
 	parentClient     *spb.ShardClient
 	batchingInterval time.Duration
 	curLsn           int64
 	curLsnMu         sync.Mutex
-	waitCMap         map[int64]chan int64
-	waitCMapMu       sync.Mutex
 	writeC           chan *record
+	lsnToRecord      map[int64]*record
+	lsnToRecordMu    sync.Mutex
 }
 
 func NewRecordShard(diskPath string, batchingInterval time.Duration) (*RecordShard, error) {
-	disk, err := storage.NewStorage(diskPath, 0, 1, 1000)
+	disk, err := storage.NewStorage(diskPath, 0, 1, 100000)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +39,7 @@ func NewRecordShard(diskPath string, batchingInterval time.Duration) (*RecordSha
 	s.disk = disk
 	s.batchingInterval = batchingInterval
 	s.writeC = make(chan *record, 4096)
-	s.waitCMap = make(map[int64]chan int64)
+	s.lsnToRecord = make(map[int64]*record)
 	s.curLsn = -1
 	return &s, nil
 }
@@ -52,13 +53,14 @@ func (rs *RecordShard) Start(ipAddr string, parentIpAddr string) error {
 	rpb.RegisterRecordShardServer(grpcServer, rs)
 
 	if parentIpAddr != "" {
+		// wait for parent to be set up
 		time.Sleep(3 * time.Second)
 		err = rs.ConnectToParent(parentIpAddr)
 		if err != nil {
 			return err
 		}
 	}
-	go rs.writeAppends()
+
 	if err := grpcServer.Serve(lis); err != nil {
 		return err
 	}
@@ -79,6 +81,7 @@ func (rs *RecordShard) ConnectToParent(parentIpAddr string) error {
 	if err != nil {
 		return err
 	}
+	go rs.writeAppends()
 	go rs.sendOrderRequests(stream)
 	go rs.receiveOrderResponses(stream)
 	return nil
