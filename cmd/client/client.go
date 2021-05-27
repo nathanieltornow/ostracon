@@ -24,15 +24,24 @@ func main() {
 
 	shardClient := pb.NewRecordShardClient(conn)
 	time.Sleep(3 * time.Second)
-	for range time.Tick(time.Second) {
+	i := 1
+	timeSum := time.Duration(0)
+	for range time.Tick(time.Millisecond * 500) {
+		if i > 50 {
+			break
+		}
 		//fmt.Println("appending")
 		start := time.Now()
-		record, err := shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo"})
+		_, err := shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo"})
 		appendTime := time.Since(start)
+		timeSum += appendTime
 		if err != nil {
 			logrus.Fatalln(err)
 			return
 		}
-		fmt.Printf("Received %v with GSN %v; Time: %v", record.Record, record.Gsn, appendTime)
+		i++
 	}
+	micros := timeSum.Microseconds()
+	fmt.Println(micros / int64(i))
+
 }
