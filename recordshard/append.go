@@ -12,27 +12,32 @@ func (rs *RecordShard) Append(ctx context.Context, request *rpb.AppendRequest) (
 		return nil, nil
 	}
 
-	// enqueue the new record in the write channel
+	// enqueue a new record in the write channel
 	newRec := &record{record: request.Record, gsn: make(chan int64)}
 	rs.writeC <- newRec
+
+	// wait for the gsn to be assigned
 	gsn := <-newRec.gsn
 	return &rpb.CommittedRecord{Gsn: gsn, Record: request.Record}, nil
 }
 
 func (rs *RecordShard) writeAppends() {
+	// consumes the write channel to write all incoming records
 	for rec := range rs.writeC {
+		// write the next record
 		rs.diskMu.Lock()
 		lsn, err := rs.disk.Write(rec.record)
 		rs.diskMu.Unlock()
 		if err != nil {
 			logrus.Fatalln(err)
 		}
+		// add record to map, so the gsn can be assigned for given lsn
 		rs.lsnToRecordMu.Lock()
 		rs.lsnToRecord[lsn] = rec
 		rs.lsnToRecordMu.Unlock()
 		// update lsn to trigger orderRequests
 		rs.curLsnMu.Lock()
-		rs.curLsn = lsn
+		rs.curLsn += 1
 		rs.curLsnMu.Unlock()
 	}
 }

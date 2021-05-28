@@ -4,12 +4,11 @@ import (
 	spb "github.com/nathanieltornow/ostracon/shard/shardpb"
 	"github.com/sirupsen/logrus"
 	"log"
-	"time"
 )
 
 func (rs *RecordShard) sendOrderRequests(stream spb.Shard_GetOrderClient) {
 	prevLsn := rs.curLsn
-	for range time.Tick(rs.batchingInterval) {
+	for {
 		rs.curLsnMu.Lock()
 		curLsnCop := rs.curLsn
 		rs.curLsnMu.Unlock()
@@ -39,6 +38,7 @@ func (rs *RecordShard) receiveOrderResponses(stream spb.Shard_GetOrderClient) {
 			logrus.Fatalln("Failed to receive order requests")
 		}
 
+		// assign gsn for subsequent entries
 		rs.diskMu.Lock()
 		err = rs.disk.Assign(0, in.StartLsn, int32(in.NumOfRecords), in.StartGsn)
 		rs.diskMu.Unlock()

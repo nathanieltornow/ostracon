@@ -31,7 +31,7 @@ type RecordShard struct {
 }
 
 func NewRecordShard(diskPath string, batchingInterval time.Duration) (*RecordShard, error) {
-	disk, err := storage.NewStorage(diskPath, 0, 1, 100000)
+	disk, err := storage.NewStorage(diskPath, 0, 1, 10000000)
 	if err != nil {
 		return nil, err
 	}

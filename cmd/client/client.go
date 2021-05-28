@@ -26,8 +26,8 @@ func main() {
 	time.Sleep(3 * time.Second)
 	i := 1
 	timeSum := time.Duration(0)
-	for range time.Tick(time.Millisecond * 500) {
-		if i > 50 {
+	for {
+		if i > 9000 {
 			break
 		}
 		//fmt.Println("appending")
@@ -41,6 +41,7 @@ func main() {
 		}
 		i++
 	}
+	fmt.Println(timeSum)
 	micros := timeSum.Microseconds()
 	fmt.Println(micros / int64(i))
 
