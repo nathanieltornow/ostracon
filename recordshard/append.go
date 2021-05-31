@@ -37,7 +37,7 @@ func (rs *RecordShard) writeAppends() {
 		rs.lsnToRecordMu.Unlock()
 		// update lsn to trigger orderRequests
 		rs.curLsnMu.Lock()
-		rs.curLsn += 1
+		rs.curLsn = lsn
 		rs.curLsnMu.Unlock()
 	}
 }

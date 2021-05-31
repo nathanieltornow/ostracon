@@ -9,7 +9,6 @@ import (
 
 var (
 	isRoot           = flag.Bool("isRoot", false, "Determines if started shard is root of the system")
-	isSequencer      = flag.Bool("isSequencer", false, "Determines if started shard can be used as sequencer")
 	ipAddr           = flag.String("ipAddr", "localhost:4000", "IP-Address of shard")
 	parentIpAddr     = flag.String("parentIpAddr", "", "The IpAddress of the parent-shard")
 	diskPath         = flag.String("diskPath", "tmp", "Path for the storage-files")
@@ -28,6 +27,6 @@ func main() {
 
 	err = s.Start(shardIpAddr, *parentIpAddr)
 	if err != nil {
-		logrus.Fatalln("Failed starting s")
+		logrus.Fatalln("Failed starting s:", err)
 	}
 }

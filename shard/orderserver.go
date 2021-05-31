@@ -44,12 +44,13 @@ func (s *Shard) GetOrder(stream pb.Shard_GetOrderServer) error {
 		if err != nil {
 			return err
 		}
+
 		s.snMu.Lock()
 		oR := orderRequest{stream: stream, numOfRecords: req.NumOfRecords, startLsn: req.StartLsn}
 		s.snToPendingOR[s.sn] = &oR
-		s.incomingOR <- &oR
 		s.sn += req.NumOfRecords
 		s.snMu.Unlock()
+		s.incomingOR <- &oR
 	}
 
 }

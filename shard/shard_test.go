@@ -125,15 +125,28 @@ func TestOrderChain(t *testing.T) {
 	}()
 
 	time.Sleep(time.Second)
-	i := int64(0)
-	for range time.Tick(time.Second) {
 
-		if err := stream.Send(&pb.OrderRequest{StartLsn: i, NumOfRecords: 1}); err != nil {
-			t.Errorf("Failed to send Order Request")
+	go func() {
+		i := int64(0)
+		for {
+
+			if err := stream.Send(&pb.OrderRequest{StartLsn: i, NumOfRecords: 1}); err != nil {
+				t.Errorf("Failed to send Order Request")
+			}
+			i += 1
 		}
-		i += 1
-	}
-	stream.CloseSend()
+	}()
+	go func() {
+		i := int64(0)
+		for {
+
+			if err := stream.Send(&pb.OrderRequest{StartLsn: i, NumOfRecords: 1}); err != nil {
+				t.Errorf("Failed to send Order Request")
+			}
+			i += 1
+		}
+	}()
+
 	<-waitc
 
 }

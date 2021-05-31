@@ -19,7 +19,7 @@ func (s *Shard) SendOrderRequests(stream pb.Shard_GetOrderClient) {
 			ordReq := pb.OrderRequest{StartLsn: prevSn, NumOfRecords: count}
 
 			s.snMu.Lock()
-			prevSn = s.sn
+			prevSn += count
 			s.snMu.Unlock()
 
 			err := stream.Send(&ordReq)
@@ -45,6 +45,8 @@ func (s *Shard) ReceiveOrderResponses(stream pb.Shard_GetOrderClient) {
 		s.snMu.Lock()
 		for i := int64(0); i < in.NumOfRecords; {
 			pendOR := s.snToPendingOR[in.StartLsn+i]
+			delete(s.snToPendingOR, in.StartLsn+i)
+
 			s.streamToOR[pendOR.stream] <- &orderResponse{
 				numOfRecords: pendOR.numOfRecords,
 				startLsn:     pendOR.startLsn,

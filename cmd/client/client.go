@@ -26,15 +26,17 @@ func main() {
 	time.Sleep(3 * time.Second)
 	i := 1
 	timeSum := time.Duration(0)
-	for {
+	for range time.Tick(time.Microsecond * 10) {
 		if i > 9000 {
 			break
 		}
 		//fmt.Println("appending")
 		start := time.Now()
-		_, err := shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo"})
+		res, err := shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo"})
 		appendTime := time.Since(start)
 		timeSum += appendTime
+
+		fmt.Println(res, appendTime)
 		if err != nil {
 			logrus.Fatalln(err)
 			return
