@@ -39,10 +39,10 @@ func (s *Shard) GetOrder(stream pb.Shard_GetOrderServer) error {
 	for {
 		req, err := stream.Recv()
 		if err == io.EOF {
-			continue
+			return nil
 		}
 		if err != nil {
-			continue
+			return err
 		}
 		s.snMu.Lock()
 		oR := orderRequest{stream: stream, numOfRecords: req.NumOfRecords, startLsn: req.StartLsn}
