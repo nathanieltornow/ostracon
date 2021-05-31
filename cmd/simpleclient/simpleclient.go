@@ -1,52 +1,70 @@
 package main
 
 import (
-	"context"
-	pb "github.com/nathanieltornow/ostracon/shard/shardpb"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"io"
+	"fmt"
 	"time"
 )
 
-func main() {
-
-	conn, err := grpc.Dial("localhost:4000", grpc.WithInsecure())
-	if err != nil {
-		logrus.Fatalln("Failed making connection to shard")
+func consume(c chan int) {
+	timeC := time.Tick(time.Second * 5)
+	count := 0
+	for {
+		select {
+		case <-timeC:
+			// sending
+			fmt.Println("Counter", count)
+		case <-c:
+			//consuming
+			count++
+		}
 	}
-	defer conn.Close()
 
-	shardClient := pb.NewShardClient(conn)
+}
 
-	stream, err := shardClient.GetOrder(context.Background())
-
-	waitc := make(chan struct{})
-
-	go func() {
-		for {
-			in, err := stream.Recv()
-			if err == io.EOF {
-				close(waitc)
-				return
-			}
-			if err != nil {
-				logrus.Fatalf("%v", err)
-			}
-			if in.StartLsn != in.StartGsn {
-				logrus.Fatalf("Got wrong StartLsn and StartGsn: %v, %v", in.StartLsn, in.StartGsn)
-			}
-		}
-	}()
-
-	i := int64(0)
-
+func produce(c chan int) {
+	i := 0
 	for range time.Tick(time.Second) {
-		if err := stream.Send(&pb.OrderRequest{StartLsn: i, NumOfRecords: 1}); err != nil {
-			logrus.Fatalf("Failed to send Order Request %v", err)
-		}
+		c <- i
 		i++
 	}
-	stream.CloseSend()
-	<-waitc
+}
+
+func main() {
+
+	c := make(chan int, 16)
+
+	waitC := make(chan struct{})
+	go func() {
+		produce(c)
+		close(waitC)
+	}()
+	go func() {
+		consume(c)
+		close(waitC)
+	}()
+	<-waitC
+	//c1 := make(chan string, 1)
+	//go func() {
+	//	time.Sleep(2 * time.Second)
+	//	c1 <- "result 1"
+	//}()
+	//
+	//select {
+	//case res := <-c1:
+	//	fmt.Println(res)
+	//case <-time.After(1 * time.Second):
+	//	fmt.Println("timeout 1")
+	//}
+	//
+	//c2 := make(chan string, 1)
+	//go func() {
+	//	time.Sleep(2 * time.Second)
+	//	c2 <- "result 2"
+	//}()
+	//select {
+	//case res := <-c2:
+	//	fmt.Println(res)
+	//case <-time.After(3 * time.Second):
+	//	fmt.Println("timeout 2")
+	//}
 }

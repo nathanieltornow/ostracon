@@ -4,49 +4,34 @@ import (
 	"context"
 	"fmt"
 	pb "github.com/nathanieltornow/ostracon/shard/shardpb"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"io"
-	"os"
 	"testing"
 	"time"
 )
 
-const (
-	shardIpAddr = "localhost:3223"
-)
-
-var (
-	shardClient pb.ShardClient
-)
-
-func TestMain(m *testing.M) {
-	shard, err := NewShard("tmp", true, true, time.Second)
+func TestRootShard(t *testing.T) {
+	shardIpAddr := "localhost:3223"
+	shard, err := NewShard("tmp", true, time.Second)
 	if err != nil {
-		logrus.Fatalln("Failed creating shard")
+		t.Errorf("Failed creating shard")
 	}
-	logrus.Infof("Starting shard on %v", shardIpAddr)
 
 	go func() {
 		err := shard.Start(shardIpAddr, "")
 		if err != nil {
-			logrus.Fatalln("Failed starting shard")
+			t.Errorf("Failed starting shard")
 		}
 	}()
 	time.Sleep(time.Second)
 
 	conn, err := grpc.Dial(shardIpAddr, grpc.WithInsecure())
 	if err != nil {
-		logrus.Fatalln("Failed making connection to shard")
+		t.Errorf("Failed making connection to shard")
 	}
 	defer conn.Close()
 
-	shardClient = pb.NewShardClient(conn)
-	ret := m.Run()
-	os.Exit(ret)
-}
-
-func TestSimpleOrderClient(t *testing.T) {
+	shardClient := pb.NewShardClient(conn)
 	stream, err := shardClient.GetOrder(context.Background())
 	if err != nil {
 		t.Errorf("%v", err)
@@ -71,14 +56,84 @@ func TestSimpleOrderClient(t *testing.T) {
 	}()
 
 	time.Sleep(time.Second)
-	for i := int64(0); i < 10; i++ {
+	for i := int64(0); i < 5; i++ {
 
 		if err := stream.Send(&pb.OrderRequest{StartLsn: i, NumOfRecords: 1}); err != nil {
 			t.Errorf("Failed to send Order Request")
 		}
-		fmt.Println(i)
-		time.Sleep(time.Second)
 	}
 	stream.CloseSend()
 	<-waitc
+}
+
+func TestOrderChain(t *testing.T) {
+	rootShardIpAddr := "localhost:3223"
+	middleShardIpAddr := "localhost:3224"
+	rootShard, err := NewShard("tmp/shard1", true, time.Second)
+	if err != nil {
+		t.Errorf("Failed creating rootShard: %v", err)
+	}
+
+	go func() {
+		err := rootShard.Start(rootShardIpAddr, "")
+		if err != nil {
+			t.Errorf("Failed starting rootShard")
+		}
+	}()
+	time.Sleep(time.Second)
+
+	middleShard, err := NewShard("tmp/shard2", false, time.Second)
+	if err != nil {
+		t.Errorf("Failed creating middleShard: %v", err)
+	}
+	go func() {
+		err := middleShard.Start(middleShardIpAddr, rootShardIpAddr)
+		if err != nil {
+			t.Errorf("Failed starting middleShard: %v", err)
+		}
+	}()
+	time.Sleep(time.Second)
+
+	conn, err := grpc.Dial(middleShardIpAddr, grpc.WithInsecure())
+	if err != nil {
+		t.Errorf("Failed making connection to shard")
+	}
+	defer conn.Close()
+
+	shardClient := pb.NewShardClient(conn)
+	stream, err := shardClient.GetOrder(context.Background())
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	waitc := make(chan struct{})
+	go func() {
+		for {
+			in, err := stream.Recv()
+			fmt.Println(in)
+			if err == io.EOF {
+				close(waitc)
+				return
+			}
+			if err != nil {
+				t.Errorf("%v", err)
+			}
+			if in.StartLsn != in.StartGsn {
+				t.Errorf("Got wrong StartLsn and StartGsn: %v, %v", in.StartLsn, in.StartGsn)
+			}
+		}
+	}()
+
+	time.Sleep(time.Second)
+	i := int64(0)
+	for range time.Tick(time.Second) {
+
+		if err := stream.Send(&pb.OrderRequest{StartLsn: i, NumOfRecords: 1}); err != nil {
+			t.Errorf("Failed to send Order Request")
+		}
+		i += 1
+	}
+	stream.CloseSend()
+	<-waitc
+
 }

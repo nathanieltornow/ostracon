@@ -11,20 +11,34 @@ import (
 	"time"
 )
 
+type orderResponse struct {
+	startLsn     int64
+	numOfRecords int64
+	startGsn     int64
+}
+
+type orderRequest struct {
+	startLsn     int64
+	numOfRecords int64
+	stream       pb.Shard_GetOrderServer
+}
+
 type Shard struct {
 	pb.UnimplementedShardServer
-	disk         *storage.Storage
-	parentConn   *grpc.ClientConn
-	parentClient *pb.ShardClient
-	//waitMapMu         sync.Mutex
-	//waitMap           map[int64]chan int64 // maps sn to pending gsn
+	disk              *storage.Storage
+	parentConn        *grpc.ClientConn
+	parentClient      *pb.ShardClient
 	isRoot            bool
 	sn                int64
 	snMu              sync.Mutex
+	streamToOR        map[pb.Shard_GetOrderServer]chan *orderResponse
+	streamToORMu      sync.Mutex
+	snToPendingOR     map[int64]*orderRequest
 	batchingIntervall time.Duration
+	incomingOR        chan *orderRequest
 }
 
-func NewShard(diskPath string, isRoot, isSequencer bool, batchingIntervall time.Duration) (*Shard, error) {
+func NewShard(diskPath string, isRoot bool, batchingIntervall time.Duration) (*Shard, error) {
 	disk, err := storage.NewStorage(diskPath)
 	if err != nil {
 		return nil, err
@@ -34,6 +48,9 @@ func NewShard(diskPath string, isRoot, isSequencer bool, batchingIntervall time.
 	newShard.disk = disk
 	newShard.isRoot = isRoot
 	newShard.batchingIntervall = batchingIntervall
+	newShard.streamToOR = make(map[pb.Shard_GetOrderServer]chan *orderResponse)
+	newShard.snToPendingOR = make(map[int64]*orderRequest)
+	newShard.incomingOR = make(chan *orderRequest, 4096)
 	return newShard, nil
 }
 
@@ -54,7 +71,6 @@ func (s *Shard) Start(ipAddr string, parentIpAddr string) error {
 		logrus.Infoln("Connected to Parent", parentIpAddr)
 
 	}
-
 	logrus.Infoln("Starting shardserver")
 	if err := grpcServer.Serve(lis); err != nil {
 		return err
@@ -71,7 +87,6 @@ func (s *Shard) ConnectToNewParent(parentIpAddr string) error {
 	client := pb.NewShardClient(conn)
 	s.parentClient = &client
 	s.parentConn = conn
-
 	stream, err := client.GetOrder(context.Background())
 	if err != nil {
 		return err

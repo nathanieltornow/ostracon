@@ -18,55 +18,16 @@ var (
 
 func main() {
 	flag.Parse()
-	if *isRoot {
-		shardIpAddr := *ipAddr
-		shard, err := shard.NewShard("tmp", true, true, *batchingInterval)
-		if err != nil {
-			logrus.Fatalln("Failed creating shard")
-		}
-		logrus.Infof("Starting shard on %v", shardIpAddr)
 
-		err = shard.Start(shardIpAddr, "")
-		if err != nil {
-			logrus.Fatalln("Failed starting shard")
-		}
-	} else {
-		shardIpAddr := *ipAddr
-		shard, err := shard.NewShard("tmp", false, true, *batchingInterval)
-		if err != nil {
-			logrus.Fatalln("Failed creating shard")
-		}
-		logrus.Infof("Starting shard on %v", shardIpAddr)
-
-		err = shard.Start(shardIpAddr, *parentIpAddr)
-		if err != nil {
-			logrus.Fatalln("Failed starting shard")
-		}
+	shardIpAddr := *ipAddr
+	s, err := shard.NewShard("tmp", *isRoot, *batchingInterval)
+	if err != nil {
+		logrus.Fatalln("Failed creating s")
 	}
+	logrus.Infof("Starting s on %v", shardIpAddr)
 
-	//if *isRoot && *isSequencer {
-	//
-	//	s, err := shard.NewShard(*diskPath, true, true, *batchingInterval)
-	//	if err != nil {
-	//		logrus.Fatalln("Failed to create new shard", err)
-	//	}
-	//
-	//	err = s.Start(*ipAddr, *parentIpAddr)
-	//	if err != nil {
-	//		logrus.Fatalln("Failed to start shard", err)
-	//	}
-	//
-	//} else if !*isSequencer && !*isRoot {
-	//
-	//	s, err := shard.NewShard(*diskPath, false, false, *batchingInterval)
-	//	if err != nil {
-	//		logrus.Fatalln("Failed to create new shard", err)
-	//	}
-	//
-	//	err = s.Start(*ipAddr, *parentIpAddr)
-	//	if err != nil {
-	//		logrus.Fatalln("Failed to start shard", err)
-	//	}
-	//
-	//}
+	err = s.Start(shardIpAddr, *parentIpAddr)
+	if err != nil {
+		logrus.Fatalln("Failed starting s")
+	}
 }

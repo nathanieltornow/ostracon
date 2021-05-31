@@ -11,11 +11,3 @@ recshard1: go run cmd/startrecordshard/startrecordshard.go -parentIpAddr localho
 
 client1: go run cmd/client/client.go -parentIpAddr localhost:6000
 client2: go run cmd/client/client.go -parentIpAddr localhost:6000
-client3: go run cmd/client/client.go -parentIpAddr localhost:6000
-client4: go run cmd/client/client.go -parentIpAddr localhost:6000
-client5: go run cmd/client/client.go -parentIpAddr localhost:6000
-client6: go run cmd/client/client.go -parentIpAddr localhost:6000
-client7: go run cmd/client/client.go -parentIpAddr localhost:6000
-client8: go run cmd/client/client.go -parentIpAddr localhost:6000
-client9: go run cmd/client/client.go -parentIpAddr localhost:6000
-client10: go run cmd/client/client.go -parentIpAddr localhost:6000
