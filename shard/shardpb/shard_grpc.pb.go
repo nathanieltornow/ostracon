@@ -19,6 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ShardClient interface {
 	GetOrder(ctx context.Context, opts ...grpc.CallOption) (Shard_GetOrderClient, error)
+	ReportCommittedRecords(ctx context.Context, opts ...grpc.CallOption) (Shard_ReportCommittedRecordsClient, error)
 }
 
 type shardClient struct {
@@ -60,11 +61,43 @@ func (x *shardGetOrderClient) Recv() (*OrderResponse, error) {
 	return m, nil
 }
 
+func (c *shardClient) ReportCommittedRecords(ctx context.Context, opts ...grpc.CallOption) (Shard_ReportCommittedRecordsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Shard_ServiceDesc.Streams[1], "/sshardpb.Shard/ReportCommittedRecords", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &shardReportCommittedRecordsClient{stream}
+	return x, nil
+}
+
+type Shard_ReportCommittedRecordsClient interface {
+	Send(*CommittedRecord) error
+	Recv() (*CommittedRecord, error)
+	grpc.ClientStream
+}
+
+type shardReportCommittedRecordsClient struct {
+	grpc.ClientStream
+}
+
+func (x *shardReportCommittedRecordsClient) Send(m *CommittedRecord) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *shardReportCommittedRecordsClient) Recv() (*CommittedRecord, error) {
+	m := new(CommittedRecord)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // ShardServer is the server API for Shard service.
 // All implementations must embed UnimplementedShardServer
 // for forward compatibility
 type ShardServer interface {
 	GetOrder(Shard_GetOrderServer) error
+	ReportCommittedRecords(Shard_ReportCommittedRecordsServer) error
 	mustEmbedUnimplementedShardServer()
 }
 
@@ -74,6 +107,9 @@ type UnimplementedShardServer struct {
 
 func (UnimplementedShardServer) GetOrder(Shard_GetOrderServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetOrder not implemented")
+}
+func (UnimplementedShardServer) ReportCommittedRecords(Shard_ReportCommittedRecordsServer) error {
+	return status.Errorf(codes.Unimplemented, "method ReportCommittedRecords not implemented")
 }
 func (UnimplementedShardServer) mustEmbedUnimplementedShardServer() {}
 
@@ -114,6 +150,32 @@ func (x *shardGetOrderServer) Recv() (*OrderRequest, error) {
 	return m, nil
 }
 
+func _Shard_ReportCommittedRecords_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ShardServer).ReportCommittedRecords(&shardReportCommittedRecordsServer{stream})
+}
+
+type Shard_ReportCommittedRecordsServer interface {
+	Send(*CommittedRecord) error
+	Recv() (*CommittedRecord, error)
+	grpc.ServerStream
+}
+
+type shardReportCommittedRecordsServer struct {
+	grpc.ServerStream
+}
+
+func (x *shardReportCommittedRecordsServer) Send(m *CommittedRecord) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *shardReportCommittedRecordsServer) Recv() (*CommittedRecord, error) {
+	m := new(CommittedRecord)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Shard_ServiceDesc is the grpc.ServiceDesc for Shard service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -125,6 +187,12 @@ var Shard_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "GetOrder",
 			Handler:       _Shard_GetOrder_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "ReportCommittedRecords",
+			Handler:       _Shard_ReportCommittedRecords_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

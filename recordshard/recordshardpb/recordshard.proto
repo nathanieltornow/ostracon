@@ -5,6 +5,7 @@ option go_package = "github.com/nathanieltornow/ostracon/recordshard/recordshard
 
 service RecordShard {
   rpc Append(AppendRequest) returns (CommittedRecord);
+  rpc Subscribe(Empty) returns (stream CommittedRecord);
 }
 
 message AppendRequest {
@@ -15,3 +16,7 @@ message CommittedRecord {
   int64 Gsn = 1;
   string Record = 2;
 }
+
+message Empty {}
+
+

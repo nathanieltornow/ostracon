@@ -19,6 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RecordShardClient interface {
 	Append(ctx context.Context, in *AppendRequest, opts ...grpc.CallOption) (*CommittedRecord, error)
+	Subscribe(ctx context.Context, in *Empty, opts ...grpc.CallOption) (RecordShard_SubscribeClient, error)
 }
 
 type recordShardClient struct {
@@ -38,11 +39,44 @@ func (c *recordShardClient) Append(ctx context.Context, in *AppendRequest, opts 
 	return out, nil
 }
 
+func (c *recordShardClient) Subscribe(ctx context.Context, in *Empty, opts ...grpc.CallOption) (RecordShard_SubscribeClient, error) {
+	stream, err := c.cc.NewStream(ctx, &RecordShard_ServiceDesc.Streams[0], "/recordshardpb.RecordShard/Subscribe", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &recordShardSubscribeClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type RecordShard_SubscribeClient interface {
+	Recv() (*CommittedRecord, error)
+	grpc.ClientStream
+}
+
+type recordShardSubscribeClient struct {
+	grpc.ClientStream
+}
+
+func (x *recordShardSubscribeClient) Recv() (*CommittedRecord, error) {
+	m := new(CommittedRecord)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // RecordShardServer is the server API for RecordShard service.
 // All implementations must embed UnimplementedRecordShardServer
 // for forward compatibility
 type RecordShardServer interface {
 	Append(context.Context, *AppendRequest) (*CommittedRecord, error)
+	Subscribe(*Empty, RecordShard_SubscribeServer) error
 	mustEmbedUnimplementedRecordShardServer()
 }
 
@@ -52,6 +86,9 @@ type UnimplementedRecordShardServer struct {
 
 func (UnimplementedRecordShardServer) Append(context.Context, *AppendRequest) (*CommittedRecord, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Append not implemented")
+}
+func (UnimplementedRecordShardServer) Subscribe(*Empty, RecordShard_SubscribeServer) error {
+	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
 func (UnimplementedRecordShardServer) mustEmbedUnimplementedRecordShardServer() {}
 
@@ -84,6 +121,27 @@ func _RecordShard_Append_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RecordShard_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RecordShardServer).Subscribe(m, &recordShardSubscribeServer{stream})
+}
+
+type RecordShard_SubscribeServer interface {
+	Send(*CommittedRecord) error
+	grpc.ServerStream
+}
+
+type recordShardSubscribeServer struct {
+	grpc.ServerStream
+}
+
+func (x *recordShardSubscribeServer) Send(m *CommittedRecord) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // RecordShard_ServiceDesc is the grpc.ServiceDesc for RecordShard service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -96,6 +154,12 @@ var RecordShard_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RecordShard_Append_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Subscribe",
+			Handler:       _RecordShard_Subscribe_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "recordshard.proto",
 }

@@ -6,6 +6,7 @@ option go_package = "github.com/nathanieltornow/ostracon/shard/shardpb";
 
 service Shard {
   rpc GetOrder(stream OrderRequest) returns (stream OrderResponse);
+  rpc ReportCommittedRecords(stream CommittedRecord) returns (stream CommittedRecord);
 }
 
 message OrderRequest {
@@ -19,3 +20,7 @@ message OrderResponse {
   int64 NumOfRecords = 3;
 }
 
+message CommittedRecord {
+  int64 Gsn = 1;
+  string Record = 2;
+}
