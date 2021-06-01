@@ -11,7 +11,6 @@ var (
 	isRoot           = flag.Bool("isRoot", false, "Determines if started shard is root of the system")
 	ipAddr           = flag.String("ipAddr", "localhost:4000", "IP-Address of shard")
 	parentIpAddr     = flag.String("parentIpAddr", "", "The IpAddress of the parent-shard")
-	diskPath         = flag.String("diskPath", "tmp", "Path for the storage-files")
 	batchingInterval = flag.Duration("interval", time.Second, "Intervall to request ordering")
 )
 
@@ -19,7 +18,7 @@ func main() {
 	flag.Parse()
 
 	shardIpAddr := *ipAddr
-	s, err := shard.NewShard("tmp", *isRoot, *batchingInterval)
+	s, err := shard.NewShard(*isRoot, *batchingInterval)
 	if err != nil {
 		logrus.Fatalln("Failed creating s")
 	}

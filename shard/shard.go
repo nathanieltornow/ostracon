@@ -3,7 +3,6 @@ package shard
 import (
 	"context"
 	pb "github.com/nathanieltornow/ostracon/shard/shardpb"
-	"github.com/nathanieltornow/ostracon/storage"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"net"
@@ -25,7 +24,6 @@ type orderRequest struct {
 
 type Shard struct {
 	pb.UnimplementedShardServer
-	disk              *storage.Storage
 	parentConn        *grpc.ClientConn
 	parentClient      *pb.ShardClient
 	isRoot            bool
@@ -38,14 +36,8 @@ type Shard struct {
 	incomingOR        chan *orderRequest
 }
 
-func NewShard(diskPath string, isRoot bool, batchingIntervall time.Duration) (*Shard, error) {
-	disk, err := storage.NewStorage(diskPath)
-	if err != nil {
-		return nil, err
-	}
-
+func NewShard(isRoot bool, batchingIntervall time.Duration) (*Shard, error) {
 	newShard := &Shard{}
-	newShard.disk = disk
 	newShard.isRoot = isRoot
 	newShard.batchingIntervall = batchingIntervall
 	newShard.streamToOR = make(map[pb.Shard_GetOrderServer]chan *orderResponse)
