@@ -12,7 +12,7 @@ import (
 
 func TestRecBroadCast(t *testing.T) {
 	// setup readserver
-	shardIpAddr := "localhost:3223"
+	shardIpAddr := "localhost:6666"
 	shard, err := NewShard(true, time.Second)
 	if err != nil {
 		t.Errorf("Failed creating shard")
@@ -40,19 +40,6 @@ func TestRecBroadCast(t *testing.T) {
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	go func() {
-		for {
-			in, err := stream1.Recv()
-			if err == io.EOF {
-				close(waitc)
-				return
-			}
-			if err != nil {
-				t.Errorf("%v", err)
-			}
-			fmt.Println("1:", in)
-		}
-	}()
 
 	shardClient2 := pb.NewShardClient(conn)
 	stream2, err := shardClient2.ReportCommittedRecords(context.Background())
@@ -63,22 +50,33 @@ func TestRecBroadCast(t *testing.T) {
 	go func() {
 		for {
 			in, err := stream2.Recv()
-			if err == io.EOF {
+			fmt.Println(in)
+
+			if in.Record == "hi" && in.Gsn == 14 {
 				close(waitc)
+				return
+			} else {
+				t.Errorf("Got wrong message")
+			}
+			if err == io.EOF {
 				return
 			}
 			if err != nil {
 				t.Errorf("%v", err)
 			}
-			fmt.Println("2:", in)
+
 		}
 	}()
-
-	for range time.Tick(time.Second) {
-		if err := stream1.Send(&pb.CommittedRecord{Gsn: 14, Record: "hi"}); err != nil {
-			t.Errorf("Failed to send Order Request: %v", err)
-		}
+	time.Sleep(time.Second)
+	if err := stream1.Send(&pb.CommittedRecord{Gsn: 14, Record: "hi"}); err != nil {
+		t.Errorf("Failed to send Order Request: %v", err)
 	}
 	stream1.CloseSend()
-	<-waitc
+
+	select {
+	case <-waitc:
+	case <-time.After(time.Second * 2):
+		t.Errorf("Timed out")
+
+	}
 }
