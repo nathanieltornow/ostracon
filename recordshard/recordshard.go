@@ -28,6 +28,9 @@ type RecordShard struct {
 	writeC           chan *record
 	lsnToRecord      map[int64]*record
 	lsnToRecordMu    sync.Mutex
+	subscribeC       chan *rpb.CommittedRecord
+	newComRecC       chan *spb.CommittedRecord
+	parentReadStream *spb.Shard_ReportCommittedRecordsClient
 }
 
 func NewRecordShard(diskPath string, batchingInterval time.Duration) (*RecordShard, error) {
@@ -41,6 +44,8 @@ func NewRecordShard(diskPath string, batchingInterval time.Duration) (*RecordSha
 	s.writeC = make(chan *record, 4096)
 	s.lsnToRecord = make(map[int64]*record)
 	s.curLsn = -1
+	s.subscribeC = make(chan *rpb.CommittedRecord, 4096)
+	s.newComRecC = make(chan *spb.CommittedRecord, 4096)
 	return &s, nil
 }
 
@@ -81,8 +86,14 @@ func (rs *RecordShard) ConnectToParent(parentIpAddr string) error {
 	if err != nil {
 		return err
 	}
+	readStream, err := client.ReportCommittedRecords(context.Background())
+	if err != nil {
+		return err
+	}
 	go rs.writeAppends()
 	go rs.sendOrderRequests(stream)
 	go rs.receiveOrderResponses(stream)
+	rs.parentReadStream = &readStream
+	go rs.sendCommittedRecords(readStream)
 	return nil
 }

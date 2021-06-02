@@ -24,27 +24,16 @@ func main() {
 
 	shardClient := pb.NewRecordShardClient(conn)
 	time.Sleep(3 * time.Second)
-	i := 1
-	timeSum := time.Duration(0)
-	for range time.Tick(time.Second) {
-		if i > 9000 {
-			break
-		}
-		//fmt.Println("appending")
-		start := time.Now()
-		res, err := shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo"})
-		appendTime := time.Since(start)
-		timeSum += appendTime
 
-		fmt.Println(res, appendTime)
+	stream, err := shardClient.Subscribe(context.Background(), &pb.Empty{})
+	if err != nil {
+		logrus.Fatalln(err)
+	}
+	for {
+		in, err := stream.Recv()
 		if err != nil {
 			logrus.Fatalln(err)
-			return
 		}
-		i++
+		fmt.Println(in)
 	}
-	fmt.Println(timeSum)
-	micros := timeSum.Microseconds()
-	fmt.Println(micros / int64(i))
-
 }

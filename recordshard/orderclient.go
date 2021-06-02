@@ -49,6 +49,7 @@ func (rs *RecordShard) receiveOrderResponses(stream spb.Shard_GetOrderClient) {
 		rs.lsnToRecordMu.Lock()
 		for i := int64(0); i < in.NumOfRecords; i++ {
 			rs.lsnToRecord[in.StartLsn+i].gsn <- in.StartGsn + i
+			rs.newComRecC <- &spb.CommittedRecord{Record: rs.lsnToRecord[in.StartLsn+i].record, Gsn: in.StartGsn + i}
 			delete(rs.lsnToRecord, in.StartLsn+i)
 		}
 		rs.lsnToRecordMu.Unlock()
