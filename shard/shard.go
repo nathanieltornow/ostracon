@@ -22,6 +22,11 @@ type orderRequest struct {
 	stream       pb.Shard_GetOrderServer
 }
 
+type committedRecord struct {
+	gsn    int64
+	record string
+}
+
 type Shard struct {
 	pb.UnimplementedShardServer
 	parentConn        *grpc.ClientConn
@@ -34,6 +39,9 @@ type Shard struct {
 	snToPendingOR     map[int64]*orderRequest
 	batchingIntervall time.Duration
 	incomingOR        chan *orderRequest
+	incomingComRec    chan *committedRecord
+	comRecStreams     []chan *committedRecord
+	comRecStreamsMu   sync.RWMutex
 }
 
 func NewShard(isRoot bool, batchingIntervall time.Duration) (*Shard, error) {
@@ -43,6 +51,8 @@ func NewShard(isRoot bool, batchingIntervall time.Duration) (*Shard, error) {
 	newShard.streamToOR = make(map[pb.Shard_GetOrderServer]chan *orderResponse)
 	newShard.snToPendingOR = make(map[int64]*orderRequest)
 	newShard.incomingOR = make(chan *orderRequest, 4096)
+	newShard.incomingComRec = make(chan *committedRecord, 4096)
+	newShard.comRecStreams = make([]chan *committedRecord, 0)
 	return newShard, nil
 }
 
@@ -64,6 +74,7 @@ func (s *Shard) Start(ipAddr string, parentIpAddr string) error {
 
 	}
 	logrus.Infoln("Starting shardserver")
+	go s.broadcastComRec()
 	if err := grpcServer.Serve(lis); err != nil {
 		return err
 	}
