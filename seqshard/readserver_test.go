@@ -1,9 +1,9 @@
-package shard
+package seqshard
 
 import (
 	"context"
 	"fmt"
-	pb "github.com/nathanieltornow/ostracon/shard/shardpb"
+	pb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
 	"google.golang.org/grpc"
 	"io"
 	"testing"
@@ -15,20 +15,20 @@ func TestRecBroadCast(t *testing.T) {
 	shardIpAddr := "localhost:6666"
 	shard, err := NewShard(true, time.Second)
 	if err != nil {
-		t.Errorf("Failed creating shard")
+		t.Errorf("Failed creating seqshard")
 	}
 
 	go func() {
 		err := shard.Start(shardIpAddr, "")
 		if err != nil {
-			t.Errorf("Failed starting shard")
+			t.Errorf("Failed starting seqshard")
 		}
 	}()
 	time.Sleep(time.Second)
 
 	conn, err := grpc.Dial(shardIpAddr, grpc.WithInsecure())
 	if err != nil {
-		t.Errorf("Failed making connection to shard")
+		t.Errorf("Failed making connection to seqshard")
 	}
 	defer conn.Close()
 

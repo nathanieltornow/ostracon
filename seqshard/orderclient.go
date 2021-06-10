@@ -1,7 +1,7 @@
-package shard
+package seqshard
 
 import (
-	pb "github.com/nathanieltornow/ostracon/shard/shardpb"
+	pb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
 	"github.com/sirupsen/logrus"
 	"time"
 )

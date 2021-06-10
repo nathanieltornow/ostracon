@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.26.0
 // 	protoc        v3.15.3
-// source: shard.proto
+// source: seqshard.proto
 
-package shardpb
+package seqshardpb
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"

@@ -1,19 +1,30 @@
 version: "3"
 
 services:
-  sequencershard:
+  sshard:
     build:
       context: ./
-      dockerfile: Dockerfile
+      dockerfile: shard.Dockerfile
       args:
-        FLAGS: "-isRoot -isSequencer"
+        FLAGS: "-isRoot -ipAddr :3000"
     ports:
-      - "8000:4000"
+      - "3000:3000"
+
+  rshard:
+    build:
+      context: ./
+      dockerfile: recordshard.Dockerfile
+      args:
+        FLAGS: "-ipAddr :6000 -parentIpAddr :3000"
+    ports:
+      - "6000:6000"
+    depends_on:
+      - sshard
 
 #  recordshard1:
 #    build:
 #      context: ./
-#      dockerfile: Dockerfile
+#      dockerfile: seqshard.Dockerfile
 #      args:
 #        FLAGS: "-parentIPAddr localhost:8000"
 #    ports:
@@ -24,7 +35,7 @@ services:
 #  recordshard2:
 #    build:
 #      context: ./
-#      dockerfile: Dockerfile
+#      dockerfile: seqshard.Dockerfile
 #      args:
 #        FLAGS: "-parentIPAddr localhost:8000"
 #    ports:

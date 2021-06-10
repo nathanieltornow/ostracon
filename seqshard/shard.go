@@ -1,8 +1,8 @@
-package shard
+package seqshard
 
 import (
 	"context"
-	pb "github.com/nathanieltornow/ostracon/shard/shardpb"
+	pb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"net"

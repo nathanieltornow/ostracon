@@ -2,6 +2,7 @@ package recordshard
 
 import (
 	"context"
+	"fmt"
 	rpb "github.com/nathanieltornow/ostracon/recordshard/recordshardpb"
 	"github.com/sirupsen/logrus"
 )
@@ -12,6 +13,7 @@ func (rs *RecordShard) Append(ctx context.Context, request *rpb.AppendRequest) (
 		return nil, nil
 	}
 
+	fmt.Println("hi")
 	// enqueue a new record in the write channel
 	newRec := &record{record: request.Record, gsn: make(chan int64)}
 	rs.writeC <- newRec

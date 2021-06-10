@@ -2,9 +2,10 @@ package recordshard
 
 import (
 	"context"
+	"fmt"
 	rpb "github.com/nathanieltornow/ostracon/recordshard/recordshardpb"
 	"github.com/nathanieltornow/ostracon/recordshard/storage"
-	spb "github.com/nathanieltornow/ostracon/shard/shardpb"
+	spb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
 	"google.golang.org/grpc"
 	"net"
 	"sync"
@@ -34,6 +35,7 @@ type RecordShard struct {
 }
 
 func NewRecordShard(diskPath string, batchingInterval time.Duration) (*RecordShard, error) {
+	fmt.Println("hi")
 	disk, err := storage.NewStorage(diskPath, 0, 1, 10000000)
 	if err != nil {
 		return nil, err
@@ -65,7 +67,7 @@ func (rs *RecordShard) Start(ipAddr string, parentIpAddr string) error {
 			return err
 		}
 	}
-
+	fmt.Println("ahisdhoaishdoi")
 	if err := grpcServer.Serve(lis); err != nil {
 		return err
 	}

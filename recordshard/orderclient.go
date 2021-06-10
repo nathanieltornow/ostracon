@@ -1,7 +1,7 @@
 package recordshard
 
 import (
-	spb "github.com/nathanieltornow/ostracon/shard/shardpb"
+	spb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
 	"github.com/sirupsen/logrus"
 	"log"
 )
