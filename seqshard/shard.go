@@ -2,6 +2,7 @@ package seqshard
 
 import (
 	"context"
+	"fmt"
 	pb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -59,6 +60,7 @@ func NewShard(isRoot bool, batchingIntervall time.Duration) (*Shard, error) {
 func (s *Shard) Start(ipAddr string, parentIpAddr string) error {
 	lis, err := net.Listen("tcp", ipAddr)
 	if err != nil {
+		fmt.Println("hi")
 		return err
 	}
 	grpcServer := grpc.NewServer()
