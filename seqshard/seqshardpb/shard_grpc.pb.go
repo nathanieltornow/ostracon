@@ -197,5 +197,5 @@ var Shard_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "seqshard.proto",
+	Metadata: "shard.proto",
 }

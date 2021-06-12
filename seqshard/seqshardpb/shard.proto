@@ -12,6 +12,7 @@ service Shard {
 message OrderRequest {
   int64 NumOfRecords = 1;
   int64 StartLsn = 2;
+  int64 Color = 3;
 }
 
 message OrderResponse {

@@ -10,6 +10,7 @@ service RecordShard {
 
 message AppendRequest {
   string Record = 1;
+  int64 Color = 2;
 }
 
 message CommittedRecord {
@@ -18,5 +19,3 @@ message CommittedRecord {
 }
 
 message Empty {}
-
-
