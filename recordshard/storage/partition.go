@@ -27,6 +27,12 @@ func NewPartition(path string, segLen int32) (*Partition, error) {
 	return p, nil
 }
 
+func (p *Partition) GetNextLsn() int64 {
+	p.Lock()
+	defer p.Unlock()
+	return p.nextLSN
+}
+
 func (p *Partition) Write(record string) (int64, error) {
 	p.Lock()
 	defer p.Unlock()

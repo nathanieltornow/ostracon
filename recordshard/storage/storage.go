@@ -29,6 +29,10 @@ func NewStorage(path string, partitionID, numPartitions, segLen int32) (*Storage
 	return s, nil
 }
 
+func (s *Storage) GetNextLsn(partitionID int32) int64 {
+	return s.partitions[partitionID].GetNextLsn()
+}
+
 func (s *Storage) Write(record string) (int64, error) {
 	lsn, err := s.WriteToPartition(s.partitionID, record)
 	return lsn, err
