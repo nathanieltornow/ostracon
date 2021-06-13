@@ -2,7 +2,6 @@ package recordshard
 
 import (
 	"context"
-	"fmt"
 	rpb "github.com/nathanieltornow/ostracon/recordshard/recordshardpb"
 	"github.com/nathanieltornow/ostracon/recordshard/storage"
 	spb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
@@ -19,8 +18,8 @@ type record struct {
 
 type RecordShard struct {
 	rpb.UnimplementedRecordShardServer
+	id               int64
 	disk             *storage.Storage
-	diskMu           sync.Mutex
 	parentConn       *grpc.ClientConn
 	parentClient     *spb.ShardClient
 	batchingInterval time.Duration
@@ -29,25 +28,29 @@ type RecordShard struct {
 	writeC           chan *record
 	lsnToRecord      map[int64]*record
 	lsnToRecordMu    sync.Mutex
-	subscribeC       chan *rpb.CommittedRecord
+	subscribeCs      []chan *rpb.CommittedRecord
+	subscriberCsMu   sync.RWMutex
 	newComRecC       chan *spb.CommittedRecord
 	parentReadStream *spb.Shard_ReportCommittedRecordsClient
+	replicaC         chan *rpb.CommittedRecord
 }
 
-func NewRecordShard(diskPath string, batchingInterval time.Duration) (*RecordShard, error) {
-	disk, err := storage.NewStorage(diskPath, 0, 1, 10000000)
+func NewRecordShard(id int64, diskPath string, batchingInterval time.Duration) (*RecordShard, error) {
+	disk, err := storage.NewStorage(diskPath, 0, 2, 10000000)
 	if err != nil {
 		return nil, err
 	}
-	s := RecordShard{}
+	s := new(RecordShard)
+	s.id = id
 	s.disk = disk
 	s.batchingInterval = batchingInterval
 	s.writeC = make(chan *record, 4096)
 	s.lsnToRecord = make(map[int64]*record)
 	s.curLsn = -1
-	s.subscribeC = make(chan *rpb.CommittedRecord, 4096)
+	s.subscribeCs = make([]chan *rpb.CommittedRecord, 0)
 	s.newComRecC = make(chan *spb.CommittedRecord, 4096)
-	return &s, nil
+	s.replicaC = make(chan *rpb.CommittedRecord, 4096)
+	return s, nil
 }
 
 func (rs *RecordShard) Start(ipAddr string, parentIpAddr string) error {
@@ -66,7 +69,6 @@ func (rs *RecordShard) Start(ipAddr string, parentIpAddr string) error {
 			return err
 		}
 	}
-	fmt.Println("ahisdhoaishdoi")
 	if err := grpcServer.Serve(lis); err != nil {
 		return err
 	}
@@ -96,5 +98,7 @@ func (rs *RecordShard) ConnectToParent(parentIpAddr string) error {
 	go rs.receiveOrderResponses(stream)
 	rs.parentReadStream = &readStream
 	go rs.sendCommittedRecords(readStream)
+	go rs.receiveCommittedRecords(readStream)
+	go rs.storeReplicas()
 	return nil
 }

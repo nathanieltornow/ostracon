@@ -12,6 +12,7 @@ import (
 
 var (
 	parentIpAddr = flag.String("parentIpAddr", "", "")
+	gsn          = flag.Int64("gsn", 0, "as")
 )
 
 func main() {
@@ -25,7 +26,7 @@ func main() {
 	shardClient := pb.NewRecordShardClient(conn)
 	time.Sleep(3 * time.Second)
 
-	stream, err := shardClient.Subscribe(context.Background(), &pb.Empty{})
+	stream, err := shardClient.Subscribe(context.Background(), &pb.ReadRequest{Gsn: *gsn})
 	if err != nil {
 		logrus.Fatalln(err)
 	}

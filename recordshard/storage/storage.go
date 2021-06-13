@@ -47,33 +47,17 @@ func (s *Storage) Assign(partitionID int32, lsn int64, length int32, gsn int64) 
 	return s.partitions[partitionID].Assign(lsn, length, gsn)
 }
 
-func (s *Storage) Read(gsn int64) (string, error) {
-	return s.ReadGSN(gsn)
-}
-
-func (s *Storage) ReadGSN(gsn int64) (string, error) {
+func (s *Storage) ReadGSN(partitionID int32, gsn int64) (string, error) {
 	// read my own partition first
-	p := s.partitions[s.partitionID]
+	p := s.partitions[partitionID]
 	if p != nil {
 		r, err := p.ReadGSN(gsn)
 		if err == nil {
 			return r, nil
 		}
 	}
-	// if not in my own partition, check others
-	for i := int32(0); i < s.numPartitions; i++ {
-		if i == s.partitionID {
-			continue
-		}
-		p = s.partitions[i]
-		if p != nil {
-			r, err := p.ReadGSN(gsn)
-			if err == nil {
-				return r, nil
-			}
-		}
-	}
 	return "", fmt.Errorf("Record not found as gsn=%v", gsn)
+
 }
 
 func (s *Storage) ReadLSN(partitionID int32, lsn int64) (string, error) {

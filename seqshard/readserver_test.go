@@ -13,7 +13,7 @@ import (
 func TestRecBroadCast(t *testing.T) {
 	// setup readserver
 	shardIpAddr := "localhost:6666"
-	shard, err := NewShard(true, time.Second)
+	shard, err := NewShard(0, true, time.Second)
 	if err != nil {
 		t.Errorf("Failed creating seqshard")
 	}

@@ -27,7 +27,6 @@ func (s *Shard) ReportCommittedRecords(stream pb.Shard_ReportCommittedRecordsSer
 }
 
 func (s *Shard) SendCommittedRecords(stream pb.Shard_ReportCommittedRecordsServer, c chan *committedRecord) {
-
 	for rec := range c {
 		err := stream.Send(&pb.CommittedRecord{Gsn: rec.gsn, Record: rec.record})
 		if err != nil {

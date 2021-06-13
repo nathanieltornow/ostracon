@@ -17,7 +17,6 @@ func (rs *RecordShard) sendOrderRequests(stream spb.Shard_GetOrderClient) {
 			continue
 		}
 		if curLsnCop < prevLsn {
-
 			log.Fatalln("WTF", curLsnCop, prevLsn)
 		}
 		orderReq := spb.OrderRequest{StartLsn: prevLsn + 1, NumOfRecords: curLsnCop - prevLsn}
@@ -39,9 +38,7 @@ func (rs *RecordShard) receiveOrderResponses(stream spb.Shard_GetOrderClient) {
 		}
 
 		// assign gsn for subsequent entries
-		rs.diskMu.Lock()
 		err = rs.disk.Assign(0, in.StartLsn, int32(in.NumOfRecords), in.StartGsn)
-		rs.diskMu.Unlock()
 		if err != nil {
 			logrus.Fatalln("Failed to assign", err)
 		}

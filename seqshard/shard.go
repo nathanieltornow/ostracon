@@ -2,7 +2,6 @@ package seqshard
 
 import (
 	"context"
-	"fmt"
 	pb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -30,6 +29,7 @@ type committedRecord struct {
 
 type Shard struct {
 	pb.UnimplementedShardServer
+	color             int64
 	parentConn        *grpc.ClientConn
 	parentClient      *pb.ShardClient
 	isRoot            bool
@@ -45,8 +45,9 @@ type Shard struct {
 	comRecStreamsMu   sync.RWMutex
 }
 
-func NewShard(isRoot bool, batchingIntervall time.Duration) (*Shard, error) {
+func NewShard(color int64, isRoot bool, batchingIntervall time.Duration) (*Shard, error) {
 	newShard := &Shard{}
+	newShard.color = color
 	newShard.isRoot = isRoot
 	newShard.batchingIntervall = batchingIntervall
 	newShard.streamToOR = make(map[pb.Shard_GetOrderServer]chan *orderResponse)
@@ -60,7 +61,6 @@ func NewShard(isRoot bool, batchingIntervall time.Duration) (*Shard, error) {
 func (s *Shard) Start(ipAddr string, parentIpAddr string) error {
 	lis, err := net.Listen("tcp", ipAddr)
 	if err != nil {
-		fmt.Println("hi")
 		return err
 	}
 	grpcServer := grpc.NewServer()

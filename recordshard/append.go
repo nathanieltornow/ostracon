@@ -2,7 +2,6 @@ package recordshard
 
 import (
 	"context"
-	"fmt"
 	rpb "github.com/nathanieltornow/ostracon/recordshard/recordshardpb"
 	"github.com/sirupsen/logrus"
 )
@@ -13,7 +12,6 @@ func (rs *RecordShard) Append(ctx context.Context, request *rpb.AppendRequest) (
 		return nil, nil
 	}
 
-	fmt.Println("hi")
 	// enqueue a new record in the write channel
 	newRec := &record{record: request.Record, gsn: make(chan int64)}
 	rs.writeC <- newRec
@@ -27,9 +25,7 @@ func (rs *RecordShard) writeAppends() {
 	// consumes the write channel to write all incoming records
 	for rec := range rs.writeC {
 		// write the next record
-		rs.diskMu.Lock()
 		lsn, err := rs.disk.Write(rec.record)
-		rs.diskMu.Unlock()
 		if err != nil {
 			logrus.Fatalln(err)
 		}
