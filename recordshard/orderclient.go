@@ -4,11 +4,12 @@ import (
 	spb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
 	"github.com/sirupsen/logrus"
 	"log"
+	"time"
 )
 
 func (rs *RecordShard) sendOrderRequests(stream spb.Shard_GetOrderClient) {
 	prevLsn := rs.curLsn
-	for {
+	for range time.Tick(rs.batchingInterval) {
 		rs.curLsnMu.Lock()
 		curLsnCop := rs.curLsn
 		rs.curLsnMu.Unlock()

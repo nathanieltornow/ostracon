@@ -5,4 +5,3 @@ ADD . /app
 WORKDIR /app
 RUN go build -o main cmd/shard/shard.go
 ENTRYPOINT ["/app/main"]
-EXPOSE 4000

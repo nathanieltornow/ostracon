@@ -5,6 +5,7 @@ import (
 	rpb "github.com/nathanieltornow/ostracon/recordshard/recordshardpb"
 	"github.com/nathanieltornow/ostracon/recordshard/storage"
 	spb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"net"
 	"sync"
@@ -69,6 +70,7 @@ func (rs *RecordShard) Start(ipAddr string, parentIpAddr string) error {
 			return err
 		}
 	}
+	logrus.Infoln("Starting RecordShard")
 	if err := grpcServer.Serve(lis); err != nil {
 		return err
 	}

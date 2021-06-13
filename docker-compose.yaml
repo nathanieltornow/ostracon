@@ -1,7 +1,23 @@
 version: "3"
 
-#services:
-#  sshard:
+services:
+  seqshard:
+    build: .
+    command: -isRoot -ipAddr :4001
+    ports:
+      - "4000:4001"
+    expose:
+      - "4001"
+  rshard:
+    build: .
+    command: -rec -parentIpAddr seqshard:4001 -ipAddr :6000
+    ports:
+      - "6000:6000"
+    expose:
+      - "6000"
+    depends_on:
+      - seqshard
+
 #    build:
 #      context: ./
 #      dockerfile: Dockerfile
