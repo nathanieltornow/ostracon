@@ -2,9 +2,11 @@ package storage
 
 import (
 	"fmt"
+	"sync"
 )
 
 type Partition struct {
+	sync.Mutex
 	path          string
 	nextLSN       int64
 	segments      []*Segment
@@ -26,6 +28,8 @@ func NewPartition(path string, segLen int32) (*Partition, error) {
 }
 
 func (p *Partition) Write(record string) (int64, error) {
+	p.Lock()
+	defer p.Unlock()
 	lsn := p.nextLSN
 	p.nextLSN++
 	ssn, err := p.activeSegment.Write(record)
@@ -43,6 +47,8 @@ func (p *Partition) Read(gsn int64) (string, error) {
 }
 
 func (p *Partition) ReadGSN(gsn int64) (string, error) {
+	p.Lock()
+	defer p.Unlock()
 	if gsn >= p.activeSegment.baseGSN {
 		return p.activeSegment.ReadGSN(gsn)
 	}
@@ -57,6 +63,8 @@ func (p *Partition) ReadGSN(gsn int64) (string, error) {
 }
 
 func (p *Partition) ReadLSN(lsn int64) (string, error) {
+	p.Lock()
+	defer p.Unlock()
 	if lsn >= p.activeSegment.baseLSN {
 		return p.activeSegment.ReadLSN(lsn)
 	}
@@ -68,8 +76,6 @@ func (p *Partition) ReadLSN(lsn int64) (string, error) {
 }
 
 func binarySearch(segs []*Segment, get func(*Segment) int64, target int64) *Segment {
-	// Currently the function is scanning the list.
-	// TODO: implement binary search.
 	if len(segs) == 0 {
 		return nil
 	}
@@ -82,6 +88,8 @@ func binarySearch(segs []*Segment, get func(*Segment) int64, target int64) *Segm
 }
 
 func (p *Partition) CreateSegment() error {
+	p.Lock()
+	defer p.Unlock()
 	var err error
 	p.activebaseLSN += int64(p.segLen)
 	p.segments = append(p.segments, p.activeSegment)
@@ -90,5 +98,7 @@ func (p *Partition) CreateSegment() error {
 }
 
 func (p *Partition) Assign(lsn int64, length int32, gsn int64) error {
+	p.Lock()
+	defer p.Unlock()
 	return p.activeSegment.Assign(int32(lsn-p.activebaseLSN), length, gsn)
 }

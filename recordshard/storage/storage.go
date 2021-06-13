@@ -40,7 +40,6 @@ func (s *Storage) WriteToPartition(id int32, record string) (int64, error) {
 }
 
 func (s *Storage) Assign(partitionID int32, lsn int64, length int32, gsn int64) error {
-	// TODO handle errors: keep retrying
 	return s.partitions[partitionID].Assign(lsn, length, gsn)
 }
 
