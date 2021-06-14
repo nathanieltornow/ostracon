@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	rec              = flag.Bool("rec", false, "Shard will be a record-shard")
+	rec              = flag.Bool("rec", false, "SeqShard will be a record-shard")
 	storagePath      = flag.String("storagePath", "tmp", "Path to storage directory")
 	isRoot           = flag.Bool("isRoot", false, "Determines if started seqshard is root of the system")
 	ipAddr           = flag.String("ipAddr", ":4000", "IP-Address of seqshard")
@@ -46,7 +46,7 @@ func startRecordShard() error {
 }
 
 func startSeqShard() error {
-	s, err := seqshard.NewShard(0, *isRoot, *batchingInterval)
+	s, err := seqshard.NewSeqShard(0, *isRoot, *batchingInterval)
 	if err != nil {
 		return err
 	}
