@@ -16,7 +16,7 @@ var (
 
 func main() {
 	flag.Parse()
-	conn, err := grpc.Dial(":6000", grpc.WithInsecure())
+	conn, err := grpc.Dial(*parentIpAddr, grpc.WithInsecure())
 	if err != nil {
 		logrus.Fatalln("Failed making connection to seqshard")
 	}

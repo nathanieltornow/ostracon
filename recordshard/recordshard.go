@@ -21,14 +21,16 @@ type RecordShard struct {
 	rpb.UnimplementedRecordShardServer
 	id               int64
 	disk             *storage.Storage
-	parentConn       *grpc.ClientConn
 	parentClient     *spb.ShardClient
 	batchingInterval time.Duration
-	curLsn           int64
-	curLsnMu         sync.Mutex
-	writeC           chan *record
-	lsnToRecord      map[int64]*record
-	lsnToRecordMu    sync.Mutex
+
+	curLsn   int64
+	curLsnMu sync.Mutex
+	writeC   chan *record
+
+	lsnToRecord   map[int64]*record
+	lsnToRecordMu sync.Mutex
+
 	subscribeCs      []chan *rpb.CommittedRecord
 	subscriberCsMu   sync.RWMutex
 	newComRecC       chan *spb.CommittedRecord
@@ -65,7 +67,7 @@ func (rs *RecordShard) Start(ipAddr string, parentIpAddr string) error {
 	if parentIpAddr != "" {
 		// wait for parent to be set up
 		time.Sleep(3 * time.Second)
-		err = rs.ConnectToParent(parentIpAddr)
+		err = rs.connectToParent(parentIpAddr)
 		if err != nil {
 			return err
 		}
@@ -78,14 +80,13 @@ func (rs *RecordShard) Start(ipAddr string, parentIpAddr string) error {
 	return nil
 }
 
-func (rs *RecordShard) ConnectToParent(parentIpAddr string) error {
+func (rs *RecordShard) connectToParent(parentIpAddr string) error {
 	conn, err := grpc.Dial(parentIpAddr, grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
 	client := spb.NewShardClient(conn)
 	rs.parentClient = &client
-	rs.parentConn = conn
 
 	stream, err := client.GetOrder(context.Background())
 	if err != nil {

@@ -7,7 +7,7 @@ import (
 )
 
 func (rs *RecordShard) Append(ctx context.Context, request *rpb.AppendRequest) (*rpb.CommittedRecord, error) {
-	if rs.parentConn == nil && rs.parentClient == nil {
+	if rs.parentClient == nil {
 
 		return nil, nil
 	}

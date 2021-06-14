@@ -7,12 +7,12 @@ import (
 )
 
 func (s *SeqShard) sendOrderRequests(stream pb.Shard_GetOrderClient) {
-	timeC := time.Tick(s.batchingIntervall * 5)
 	count := int64(0)
 	prevSn := int64(0)
+	ticker := time.Tick(s.batchingIntervall)
 	for {
 		select {
-		case <-timeC:
+		case <-ticker:
 			if count == 0 {
 				continue
 			}
