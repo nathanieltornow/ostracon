@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-func (s *Shard) GetOrder(stream pb.Shard_GetOrderServer) error {
+func (s *SeqShard) GetOrder(stream pb.Shard_GetOrderServer) error {
 	if s.isRoot {
 		s.snMu.Lock()
 		s.sn = 0
@@ -30,11 +30,11 @@ func (s *Shard) GetOrder(stream pb.Shard_GetOrderServer) error {
 		}
 	}
 
-	s.streamToORMu.Lock()
-	s.streamToOR[stream] = make(chan *orderResponse, 4096)
-	s.streamToORMu.Unlock()
+	s.orderRespCsMu.Lock()
+	s.orderRespCs[stream] = make(chan *orderResponse, 4096)
+	s.orderRespCsMu.Unlock()
 
-	go s.SendOrderResponses(stream)
+	go s.sendOrderResponses(stream)
 
 	for {
 		req, err := stream.Recv()
@@ -47,21 +47,20 @@ func (s *Shard) GetOrder(stream pb.Shard_GetOrderServer) error {
 
 		s.snMu.Lock()
 		oR := orderRequest{stream: stream, numOfRecords: req.NumOfRecords, startLsn: req.StartLsn}
-		s.snToPendingOR[s.sn] = &oR
+		s.waitingOrderReqs[s.sn] = &oR
 		s.sn += req.NumOfRecords
 		s.snMu.Unlock()
-		s.incomingOR <- &oR
+		s.orderReqsC <- &oR
 	}
 
 }
 
-// SendOrderResponses handles a specific order-stream to send back all finished order-requests in its channel
-func (s *Shard) SendOrderResponses(stream pb.Shard_GetOrderServer) error {
-	for finishedOR := range s.streamToOR[stream] {
+// sendOrderResponses handles a specific order-stream to send back all finished order-requests in its channel
+func (s *SeqShard) sendOrderResponses(stream pb.Shard_GetOrderServer) {
+	for finishedOR := range s.orderRespCs[stream] {
 		res := pb.OrderResponse{StartLsn: finishedOR.startLsn, StartGsn: finishedOR.startGsn, NumOfRecords: finishedOR.numOfRecords}
 		if err := stream.Send(&res); err != nil {
-			return err
+			return
 		}
 	}
-	return nil
 }

@@ -11,7 +11,7 @@ import (
 
 func TestRootShard(t *testing.T) {
 	shardIpAddr := "localhost:3223"
-	shard, err := NewShard(0, true, time.Second)
+	shard, err := NewSeqShard(0, true, time.Second)
 	if err != nil {
 		t.Errorf("Failed creating seqshard")
 	}
@@ -68,7 +68,7 @@ func TestRootShard(t *testing.T) {
 //func TestOrderChain(t *testing.T) {
 //	rootShardIpAddr := "localhost:3223"
 //	middleShardIpAddr := "localhost:3224"
-//	rootShard, err := NewShard(true, time.Second)
+//	rootShard, err := NewSeqShard(true, time.Second)
 //	if err != nil {
 //		t.Errorf("Failed creating rootShard: %v", err)
 //	}
@@ -81,7 +81,7 @@ func TestRootShard(t *testing.T) {
 //	}()
 //	time.Sleep(time.Second)
 //
-//	middleShard, err := NewShard(false, time.Second)
+//	middleShard, err := NewSeqShard(false, time.Second)
 //	if err != nil {
 //		t.Errorf("Failed creating middleShard: %v", err)
 //	}

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func (s *Shard) SendOrderRequests(stream pb.Shard_GetOrderClient) {
+func (s *SeqShard) sendOrderRequests(stream pb.Shard_GetOrderClient) {
 	timeC := time.Tick(s.batchingIntervall * 5)
 	count := int64(0)
 	prevSn := int64(0)
@@ -28,13 +28,13 @@ func (s *Shard) SendOrderRequests(stream pb.Shard_GetOrderClient) {
 			}
 			count = 0
 
-		case iOR := <-s.incomingOR:
+		case iOR := <-s.orderReqsC:
 			count += iOR.numOfRecords
 		}
 	}
 }
 
-func (s *Shard) ReceiveOrderResponses(stream pb.Shard_GetOrderClient) {
+func (s *SeqShard) receiveOrderResponses(stream pb.Shard_GetOrderClient) {
 
 	for {
 		in, err := stream.Recv()
@@ -44,10 +44,10 @@ func (s *Shard) ReceiveOrderResponses(stream pb.Shard_GetOrderClient) {
 
 		s.snMu.Lock()
 		for i := int64(0); i < in.NumOfRecords; {
-			pendOR := s.snToPendingOR[in.StartLsn+i]
-			delete(s.snToPendingOR, in.StartLsn+i)
+			pendOR := s.waitingOrderReqs[in.StartLsn+i]
+			delete(s.waitingOrderReqs, in.StartLsn+i)
 
-			s.streamToOR[pendOR.stream] <- &orderResponse{
+			s.orderRespCs[pendOR.stream] <- &orderResponse{
 				numOfRecords: pendOR.numOfRecords,
 				startLsn:     pendOR.startLsn,
 				startGsn:     in.StartGsn + i,

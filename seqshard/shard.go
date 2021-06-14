@@ -27,38 +27,41 @@ type committedRecord struct {
 	record string
 }
 
-type Shard struct {
+type SeqShard struct {
 	pb.UnimplementedShardServer
 	color             int64
-	parentConn        *grpc.ClientConn
-	parentClient      *pb.ShardClient
 	isRoot            bool
-	sn                int64
-	snMu              sync.Mutex
-	streamToOR        map[pb.Shard_GetOrderServer]chan *orderResponse
-	streamToORMu      sync.Mutex
-	snToPendingOR     map[int64]*orderRequest
 	batchingIntervall time.Duration
-	incomingOR        chan *orderRequest
-	incomingComRec    chan *committedRecord
-	comRecStreams     []chan *committedRecord
-	comRecStreamsMu   sync.RWMutex
+	parentClient      *pb.ShardClient
+
+	sn               int64
+	waitingOrderReqs map[int64]*orderRequest
+	snMu             sync.Mutex
+
+	orderRespCs   map[pb.Shard_GetOrderServer]chan *orderResponse
+	orderRespCsMu sync.Mutex
+
+	orderReqsC         chan *orderRequest
+	comRecCIncoming    chan *committedRecord
+	comRecCsOutgoing   []chan *committedRecord
+	comRecCsOutgoingMu sync.RWMutex
 }
 
-func NewShard(color int64, isRoot bool, batchingIntervall time.Duration) (*Shard, error) {
-	newShard := &Shard{}
+func NewSeqShard(color int64, isRoot bool, batchingIntervall time.Duration) (*SeqShard, error) {
+	newShard := &SeqShard{}
 	newShard.color = color
 	newShard.isRoot = isRoot
 	newShard.batchingIntervall = batchingIntervall
-	newShard.streamToOR = make(map[pb.Shard_GetOrderServer]chan *orderResponse)
-	newShard.snToPendingOR = make(map[int64]*orderRequest)
-	newShard.incomingOR = make(chan *orderRequest, 4096)
-	newShard.incomingComRec = make(chan *committedRecord, 4096)
-	newShard.comRecStreams = make([]chan *committedRecord, 0)
+	newShard.orderRespCs = make(map[pb.Shard_GetOrderServer]chan *orderResponse)
+	newShard.waitingOrderReqs = make(map[int64]*orderRequest)
+	newShard.orderReqsC = make(chan *orderRequest, 4096)
+	newShard.comRecCIncoming = make(chan *committedRecord, 4096)
+	newShard.comRecCsOutgoing = make([]chan *committedRecord, 0)
 	return newShard, nil
 }
 
-func (s *Shard) Start(ipAddr string, parentIpAddr string) error {
+// Start will start the SeqShard on the given IP-address and try to connect to its parent
+func (s *SeqShard) Start(ipAddr string, parentIpAddr string) error {
 	lis, err := net.Listen("tcp", ipAddr)
 	if err != nil {
 		return err
@@ -67,8 +70,8 @@ func (s *Shard) Start(ipAddr string, parentIpAddr string) error {
 	pb.RegisterShardServer(grpcServer, s)
 
 	if !s.isRoot {
-		time.Sleep(2 * time.Second)
-		err = s.ConnectToNewParent(parentIpAddr)
+		time.Sleep(3 * time.Second)
+		err = s.connectToParent(parentIpAddr)
 		if err != nil {
 			return err
 		}
@@ -80,23 +83,21 @@ func (s *Shard) Start(ipAddr string, parentIpAddr string) error {
 	if err := grpcServer.Serve(lis); err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func (s *Shard) ConnectToNewParent(parentIpAddr string) error {
+func (s *SeqShard) connectToParent(parentIpAddr string) error {
 	conn, err := grpc.Dial(parentIpAddr, grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
 	client := pb.NewShardClient(conn)
 	s.parentClient = &client
-	s.parentConn = conn
 	stream, err := client.GetOrder(context.Background())
 	if err != nil {
 		return err
 	}
-	go s.SendOrderRequests(stream)
-	go s.ReceiveOrderResponses(stream)
+	go s.sendOrderRequests(stream)
+	go s.receiveOrderResponses(stream)
 	return nil
 }
