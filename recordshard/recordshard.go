@@ -73,6 +73,15 @@ func (rs *RecordShard) Start(ipAddr string, parentIpAddr string) error {
 		}
 	}
 	logrus.Infoln("Starting RecordShard")
+
+	heartBeatTick := time.Tick(20 * time.Second)
+	go func() {
+		for {
+			<-heartBeatTick
+			logrus.Infof("Heartbeat: Stored %v records", rs.curLsn)
+		}
+	}()
+
 	if err := grpcServer.Serve(lis); err != nil {
 		return err
 	}
