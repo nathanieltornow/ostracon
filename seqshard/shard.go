@@ -47,9 +47,8 @@ type SeqShard struct {
 	comRecCsOutgoingMu sync.RWMutex
 }
 
-func NewSeqShard(color int64, isRoot bool, batchingIntervall time.Duration) (*SeqShard, error) {
+func NewSeqShard(isRoot bool, batchingIntervall time.Duration) (*SeqShard, error) {
 	newShard := &SeqShard{}
-	newShard.color = color
 	newShard.isRoot = isRoot
 	newShard.batchingIntervall = batchingIntervall
 	newShard.orderRespCs = make(map[pb.Shard_GetOrderServer]chan *orderResponse)

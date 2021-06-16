@@ -46,7 +46,7 @@ func startRecordShard() error {
 }
 
 func startSeqShard() error {
-	s, err := seqshard.NewSeqShard(0, *isRoot, *batchingInterval)
+	s, err := seqshard.NewSeqShard(*isRoot, *batchingInterval)
 	if err != nil {
 		return err
 	}
