@@ -47,7 +47,7 @@ func main() {
 		ovrLat += res.overallLatency
 	}
 	ovrLat = time.Duration(ovrLat.Nanoseconds() / int64(len(t.ShardIps)))
-	fmt.Printf("Appended %v records in %v seconds with average latency of %v\n", ovrOps, t.Runtime, ovrLat)
+	fmt.Printf("Appended %v records in %v seconds with an average latency of %v\n", ovrOps, t.Runtime, ovrLat)
 }
 
 func appendBenchmark(ipAddr string, runtime time.Duration, interval time.Duration, resultC chan *bResult) {
@@ -71,7 +71,7 @@ out:
 		default:
 			<-ticker
 			start := time.Now()
-			_, err = shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo"})
+			_, err = shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo", Color: 1})
 			if err != nil {
 				logrus.Errorf("failed to append")
 			}

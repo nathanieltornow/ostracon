@@ -26,7 +26,7 @@ func main() {
 	shardClient := pb.NewRecordShardClient(conn)
 	time.Sleep(3 * time.Second)
 
-	stream, err := shardClient.Subscribe(context.Background(), &pb.ReadRequest{Gsn: *gsn})
+	stream, err := shardClient.Subscribe(context.Background(), &pb.ReadRequest{Gsn: *gsn, Color: 1})
 	if err != nil {
 		logrus.Fatalln(err)
 	}

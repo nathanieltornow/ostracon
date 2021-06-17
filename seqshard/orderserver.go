@@ -21,7 +21,7 @@ func (s *SeqShard) GetOrder(stream pb.Shard_GetOrderServer) error {
 			return err
 		}
 
-		if s.isRoot {
+		if s.isRoot || req.Color == s.color {
 			s.snMu.Lock()
 			res := pb.OrderResponse{StartGsn: s.sn, StartLsn: req.StartLsn, NumOfRecords: req.NumOfRecords, Color: req.Color}
 			s.sn += req.NumOfRecords

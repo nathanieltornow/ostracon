@@ -2,6 +2,7 @@ package recordshard
 
 import (
 	"context"
+	"fmt"
 	rpb "github.com/nathanieltornow/ostracon/recordshard/recordshardpb"
 	"github.com/nathanieltornow/ostracon/recordshard/storage"
 	spb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
@@ -100,7 +101,7 @@ func (rs *RecordShard) Start(ipAddr string, parentIpAddr string) error {
 				p, _ := rs.disk.GetCurrentLsn(i, true)
 				sum += p + 1
 			}
-			logrus.Infof("Heartbeat: Stored %v records", sum)
+			fmt.Printf("Heartbeat: Stored %v records", sum)
 		}
 	}()
 
