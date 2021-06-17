@@ -14,17 +14,20 @@ type orderResponse struct {
 	startLsn     int64
 	numOfRecords int64
 	startGsn     int64
+	color        int64
 }
 
 type orderRequest struct {
 	startLsn     int64
 	numOfRecords int64
+	color        int64
 	stream       pb.Shard_GetOrderServer
 }
 
 type committedRecord struct {
 	gsn    int64
 	record string
+	color  int64
 }
 
 type SeqShard struct {

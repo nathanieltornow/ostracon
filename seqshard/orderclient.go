@@ -51,6 +51,7 @@ func (s *SeqShard) receiveOrderResponses(stream pb.Shard_GetOrderClient) {
 				numOfRecords: pendOR.numOfRecords,
 				startLsn:     pendOR.startLsn,
 				startGsn:     in.StartGsn + i,
+				color:        pendOR.color,
 			}
 			i += pendOR.numOfRecords
 		}

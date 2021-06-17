@@ -23,7 +23,7 @@ func (s *SeqShard) GetOrder(stream pb.Shard_GetOrderServer) error {
 
 		if s.isRoot {
 			s.snMu.Lock()
-			res := pb.OrderResponse{StartGsn: s.sn, StartLsn: req.StartLsn, NumOfRecords: req.NumOfRecords}
+			res := pb.OrderResponse{StartGsn: s.sn, StartLsn: req.StartLsn, NumOfRecords: req.NumOfRecords, Color: req.Color}
 			s.sn += req.NumOfRecords
 			s.snMu.Unlock()
 			if err := stream.Send(&res); err != nil {
@@ -33,7 +33,7 @@ func (s *SeqShard) GetOrder(stream pb.Shard_GetOrderServer) error {
 		} else {
 
 			s.snMu.Lock()
-			oR := orderRequest{stream: stream, numOfRecords: req.NumOfRecords, startLsn: req.StartLsn}
+			oR := orderRequest{stream: stream, numOfRecords: req.NumOfRecords, startLsn: req.StartLsn, color: req.Color}
 			s.waitingOrderReqs[s.sn] = &oR
 			s.sn += req.NumOfRecords
 			s.snMu.Unlock()
@@ -46,7 +46,7 @@ func (s *SeqShard) GetOrder(stream pb.Shard_GetOrderServer) error {
 // sendOrderResponses handles a specific order-stream to send back all finished order-requests in its channel
 func (s *SeqShard) sendOrderResponses(stream pb.Shard_GetOrderServer) {
 	for finishedOR := range s.orderRespCs[stream] {
-		res := pb.OrderResponse{StartLsn: finishedOR.startLsn, StartGsn: finishedOR.startGsn, NumOfRecords: finishedOR.numOfRecords}
+		res := pb.OrderResponse{StartLsn: finishedOR.startLsn, StartGsn: finishedOR.startGsn, NumOfRecords: finishedOR.numOfRecords, Color: finishedOR.color}
 		if err := stream.Send(&res); err != nil {
 			return
 		}
