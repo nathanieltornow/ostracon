@@ -15,25 +15,8 @@ func NewColoredStorage(path string) (*ColoredStorage, error) {
 	cs := new(ColoredStorage)
 	cs.colorToDisk = make(map[int64]*Storage)
 	cs.path = path
-	_, err := cs.AddNewDisk(0)
+	_, err := cs.addNewDisk(0)
 	return cs, err
-}
-
-func (cs *ColoredStorage) AddNewDisk(color int64) (*Storage, error) {
-	cs.RLock()
-	_, ok := cs.colorToDisk[color]
-	cs.RUnlock()
-	if ok {
-		return nil, fmt.Errorf("disk for color %v is already existing", color)
-	}
-	disk, err := NewStorage(fmt.Sprintf("%v/%v", cs.path, color), 0, 2, 10000000)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create storage: %v", err)
-	}
-	cs.Lock()
-	cs.colorToDisk[color] = disk
-	cs.Unlock()
-	return disk, nil
 }
 
 func (cs *ColoredStorage) GetCurrentLsn(color int64, primary bool) (int64, error) {
@@ -45,7 +28,7 @@ func (cs *ColoredStorage) GetCurrentLsn(color int64, primary bool) (int64, error
 	if primary {
 		part = 0
 	}
-	return disk.GetNextLsn(part), nil
+	return disk.GetNextLsn(part) - 1, nil
 }
 
 func (cs *ColoredStorage) Read(gsn, color int64) (string, error) {
@@ -81,6 +64,23 @@ func (cs *ColoredStorage) Assign(primary bool, lsn, gsn, color, length int64) er
 	return disk.Assign(part, lsn, int32(length), gsn)
 }
 
+func (cs *ColoredStorage) addNewDisk(color int64) (*Storage, error) {
+	cs.RLock()
+	_, ok := cs.colorToDisk[color]
+	cs.RUnlock()
+	if ok {
+		return nil, fmt.Errorf("disk for color %v is already existing", color)
+	}
+	disk, err := NewStorage(fmt.Sprintf("%v/%v", cs.path, color), 0, 2, 10000000)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create storage: %v", err)
+	}
+	cs.Lock()
+	cs.colorToDisk[color] = disk
+	cs.Unlock()
+	return disk, nil
+}
+
 func (cs *ColoredStorage) getDiskFromColor(color int64) (*Storage, error) {
 	cs.RLock()
 	disk, ok := cs.colorToDisk[color]
@@ -88,5 +88,5 @@ func (cs *ColoredStorage) getDiskFromColor(color int64) (*Storage, error) {
 	if ok {
 		return disk, nil
 	}
-	return nil, fmt.Errorf("no disk for color %v", color)
+	return cs.addNewDisk(color)
 }

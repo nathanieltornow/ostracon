@@ -48,20 +48,20 @@ func (rs *RecordShard) sendCommittedRecords(stream spb.Shard_ReportCommittedReco
 }
 
 func (rs *RecordShard) readStoredReplicas(fromGsn int64, c chan *rpb.CommittedRecord) {
-	i := fromGsn
-	to := rs.disk.GetNextLsn(1)
-	for ; i <= to; i++ {
-		rec, err := rs.disk.ReadGSN(1, i)
-		if err != nil {
-			continue
-		}
-		c <- &rpb.CommittedRecord{Record: rec, Gsn: i}
-	}
+	//i := fromGsn
+	//to := rs.disk.GetCurrentLsn()
+	//for ; i <= to; i++ {
+	//	rec, err := rs.disk.ReadGSN(1, i)
+	//	if err != nil {
+	//		continue
+	//	}
+	//	c <- &rpb.CommittedRecord{Record: rec, Gsn: i}
+	//}
 }
 
 func (rs *RecordShard) storeReplicas() {
-	for r := range rs.replicaC {
-		lsn, _ := rs.disk.WriteToPartition(1, r.Record)
-		_ = rs.disk.Assign(1, lsn, 1, r.Gsn)
-	}
+	//for r := range rs.replicaC {
+	//	lsn, _ := rs.disk.WriteToPartition(1, r.Record)
+	//	_ = rs.disk.Assign(1, lsn, 1, r.Gsn)
+	//}
 }

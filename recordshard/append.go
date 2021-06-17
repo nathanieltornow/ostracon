@@ -2,6 +2,7 @@ package recordshard
 
 import (
 	"context"
+	"fmt"
 	rpb "github.com/nathanieltornow/ostracon/recordshard/recordshardpb"
 	"github.com/sirupsen/logrus"
 )
@@ -13,7 +14,7 @@ func (rs *RecordShard) Append(ctx context.Context, request *rpb.AppendRequest) (
 	}
 
 	// enqueue a new record in the write channel
-	newRec := &record{record: request.Record, gsn: make(chan int64)}
+	newRec := &record{record: request.Record, gsn: make(chan int64), color: request.Color}
 	rs.writeC <- newRec
 
 	// wait for the gsn to be assigned
@@ -25,17 +26,14 @@ func (rs *RecordShard) writeAppends() {
 	// consumes the write channel to write all incoming records
 	for rec := range rs.writeC {
 		// write the next record
-		lsn, err := rs.disk.Write(rec.record)
+		lsn, err := rs.disk.Write(true, rec.record, rec.color)
 		if err != nil {
 			logrus.Fatalln(err)
 		}
 		// add record to map, so the gsn can be assigned for given lsn
 		rs.lsnToRecordMu.Lock()
-		rs.lsnToRecord[lsn] = rec
+		fmt.Println("adding:", lsnColorTuple{lsn: lsn, color: rec.color})
+		rs.lsnToRecord[lsnColorTuple{lsn: lsn, color: rec.color}] = rec
 		rs.lsnToRecordMu.Unlock()
-		// update lsn to trigger orderRequests
-		rs.curLsnMu.Lock()
-		rs.curLsn = lsn
-		rs.curLsnMu.Unlock()
 	}
 }

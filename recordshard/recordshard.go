@@ -12,23 +12,30 @@ import (
 	"time"
 )
 
+type lsnColorTuple struct {
+	lsn   int64
+	color int64
+}
+
 type record struct {
 	gsn    chan int64
 	record string
+	color  int64
 }
 
 type RecordShard struct {
 	rpb.UnimplementedRecordShardServer
 	id               int64
-	disk             *storage.Storage
+	disk             *storage.ColoredStorage
 	parentClient     *spb.ShardClient
 	batchingInterval time.Duration
 
-	curLsn   int64
-	curLsnMu sync.Mutex
-	writeC   chan *record
+	colorToPrevLsn map[int64]int64
+	curLsnMu       sync.Mutex
 
-	lsnToRecord   map[int64]*record
+	writeC chan *record
+
+	lsnToRecord   map[lsnColorTuple]*record
 	lsnToRecordMu sync.Mutex
 
 	subscribeCs      []chan *rpb.CommittedRecord
@@ -39,7 +46,7 @@ type RecordShard struct {
 }
 
 func NewRecordShard(id int64, diskPath string, batchingInterval time.Duration) (*RecordShard, error) {
-	disk, err := storage.NewStorage(diskPath, 0, 2, 10000000)
+	disk, err := storage.NewColoredStorage(diskPath)
 	if err != nil {
 		return nil, err
 	}
@@ -48,11 +55,12 @@ func NewRecordShard(id int64, diskPath string, batchingInterval time.Duration) (
 	s.disk = disk
 	s.batchingInterval = batchingInterval
 	s.writeC = make(chan *record, 4096)
-	s.lsnToRecord = make(map[int64]*record)
-	s.curLsn = -1
+	s.lsnToRecord = make(map[lsnColorTuple]*record)
 	s.subscribeCs = make([]chan *rpb.CommittedRecord, 0)
 	s.newComRecC = make(chan *spb.CommittedRecord, 4096)
 	s.replicaC = make(chan *rpb.CommittedRecord, 4096)
+	s.colorToPrevLsn = make(map[int64]int64)
+	s.colorToPrevLsn[0] = -1
 	return s, nil
 }
 
@@ -78,7 +86,7 @@ func (rs *RecordShard) Start(ipAddr string, parentIpAddr string) error {
 	go func() {
 		for {
 			<-heartBeatTick
-			logrus.Infof("Heartbeat: Stored %v records", rs.curLsn)
+			logrus.Infof("Heartbeat")
 		}
 	}()
 

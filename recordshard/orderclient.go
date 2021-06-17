@@ -1,32 +1,33 @@
 package recordshard
 
 import (
+	"fmt"
 	spb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
 	"github.com/sirupsen/logrus"
-	"log"
 	"time"
 )
 
 func (rs *RecordShard) sendOrderRequests(stream spb.Shard_GetOrderClient) {
-	prevLsn := rs.curLsn
 	for range time.Tick(rs.batchingInterval) {
 		rs.curLsnMu.Lock()
-		curLsnCop := rs.curLsn
+		for color, prevLsn := range rs.colorToPrevLsn {
+			lsn, err := rs.disk.GetCurrentLsn(color, true)
+			if err != nil {
+				return
+			}
+			if lsn == prevLsn {
+				continue
+			}
+
+			orderReq := spb.OrderRequest{StartLsn: prevLsn + 1, NumOfRecords: lsn - prevLsn, Color: color}
+			err = stream.Send(&orderReq)
+			if err != nil {
+				logrus.Fatalln("Failed to send order requests")
+			}
+			rs.colorToPrevLsn[color] = lsn
+		}
 		rs.curLsnMu.Unlock()
 
-		if curLsnCop == prevLsn || curLsnCop < 0 {
-			continue
-		}
-		if curLsnCop < prevLsn {
-			log.Fatalln("WTF", curLsnCop, prevLsn)
-		}
-		orderReq := spb.OrderRequest{StartLsn: prevLsn + 1, NumOfRecords: curLsnCop - prevLsn}
-		prevLsn = curLsnCop
-
-		err := stream.Send(&orderReq)
-		if err != nil {
-			logrus.Fatalln("Failed to send order requests")
-		}
 	}
 }
 
@@ -39,16 +40,20 @@ func (rs *RecordShard) receiveOrderResponses(stream spb.Shard_GetOrderClient) {
 		}
 
 		// assign gsn for subsequent entries
-		err = rs.disk.Assign(0, in.StartLsn, int32(in.NumOfRecords), in.StartGsn)
+		err = rs.disk.Assign(true, in.StartLsn, in.StartGsn, in.Color, in.NumOfRecords)
 		if err != nil {
 			logrus.Fatalln("Failed to assign", err)
 		}
 
 		rs.lsnToRecordMu.Lock()
 		for i := int64(0); i < in.NumOfRecords; i++ {
-			rs.lsnToRecord[in.StartLsn+i].gsn <- in.StartGsn + i
-			rs.newComRecC <- &spb.CommittedRecord{Record: rs.lsnToRecord[in.StartLsn+i].record, Gsn: in.StartGsn + i}
-			delete(rs.lsnToRecord, in.StartLsn+i)
+			fmt.Println("finding:", lsnColorTuple{color: in.Color, lsn: in.StartLsn + i})
+			rs.lsnToRecord[lsnColorTuple{color: in.Color, lsn: in.StartLsn + i}].gsn <- in.StartGsn + i
+			rs.newComRecC <- &spb.CommittedRecord{
+				Record: rs.lsnToRecord[lsnColorTuple{color: in.Color, lsn: in.StartLsn + i}].record,
+				Gsn:    in.StartGsn + i, Color: in.Color,
+			}
+			delete(rs.lsnToRecord, lsnColorTuple{color: in.Color, lsn: in.StartLsn + i})
 		}
 		rs.lsnToRecordMu.Unlock()
 	}
