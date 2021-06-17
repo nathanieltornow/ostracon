@@ -18,7 +18,7 @@ func TestNewColoredStorage(t *testing.T) {
 func TestColoredStorage_AddNewDisk(t *testing.T) {
 	cs, err := NewColoredStorage("temp")
 	require.NoError(t, err)
-	disk, err := cs.AddNewDisk(12)
+	disk, err := cs.addNewDisk(12)
 	require.NoError(t, err)
 	require.Equal(t, disk.path, "temp/12")
 	disk2, ok := cs.colorToDisk[12]
@@ -29,7 +29,7 @@ func TestColoredStorage_AddNewDisk(t *testing.T) {
 func TestColoredStorage_GetDiskFromColor(t *testing.T) {
 	cs, err := NewColoredStorage("temp")
 	require.NoError(t, err)
-	disk, err := cs.AddNewDisk(12)
+	disk, err := cs.addNewDisk(12)
 	require.NoError(t, err)
 	disk2, err := cs.getDiskFromColor(12)
 	require.NoError(t, err)
