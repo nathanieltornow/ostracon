@@ -6,7 +6,7 @@ import (
 )
 
 type ColoredStorage struct {
-	sync.Mutex
+	sync.RWMutex
 	colorToDisk map[int64]*Storage
 	path        string
 }
@@ -20,9 +20,9 @@ func NewColoredStorage(path string) (*ColoredStorage, error) {
 }
 
 func (cs *ColoredStorage) AddNewDisk(color int64) (*Storage, error) {
-	cs.Lock()
+	cs.RLock()
 	_, ok := cs.colorToDisk[color]
-	cs.Unlock()
+	cs.RUnlock()
 	if ok {
 		return nil, fmt.Errorf("disk for color %v is already existing", color)
 	}
@@ -36,12 +36,57 @@ func (cs *ColoredStorage) AddNewDisk(color int64) (*Storage, error) {
 	return disk, nil
 }
 
-func (cs *ColoredStorage) GetDiskFromColor(color int64) (*Storage, error) {
-	cs.Lock()
+func (cs *ColoredStorage) GetCurrentLsn(color int64, primary bool) (int64, error) {
+	disk, err := cs.getDiskFromColor(color)
+	if err != nil {
+		return 0, err
+	}
+	part := int32(1)
+	if primary {
+		part = 0
+	}
+	return disk.GetNextLsn(part), nil
+}
+
+func (cs *ColoredStorage) Read(gsn, color int64) (string, error) {
+	disk, err := cs.getDiskFromColor(color)
+	if err != nil {
+		return "", err
+	}
+	rec, err := disk.ReadGSN(1, gsn)
+	return rec, err
+}
+
+func (cs *ColoredStorage) Write(primary bool, record string, color int64) (int64, error) {
+	disk, err := cs.getDiskFromColor(color)
+	if err != nil {
+		return 0, err
+	}
+	part := int32(1)
+	if primary {
+		part = 0
+	}
+	return disk.WriteToPartition(part, record)
+}
+
+func (cs *ColoredStorage) Assign(primary bool, lsn, gsn, color, length int64) error {
+	disk, err := cs.getDiskFromColor(color)
+	if err != nil {
+		return err
+	}
+	part := int32(1)
+	if primary {
+		part = 0
+	}
+	return disk.Assign(part, lsn, int32(length), gsn)
+}
+
+func (cs *ColoredStorage) getDiskFromColor(color int64) (*Storage, error) {
+	cs.RLock()
 	disk, ok := cs.colorToDisk[color]
-	cs.Unlock()
+	cs.RUnlock()
 	if ok {
 		return disk, nil
 	}
-	return cs.AddNewDisk(color)
+	return nil, fmt.Errorf("no disk for color %v", color)
 }

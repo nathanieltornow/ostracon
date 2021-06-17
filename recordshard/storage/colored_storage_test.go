@@ -31,7 +31,7 @@ func TestColoredStorage_GetDiskFromColor(t *testing.T) {
 	require.NoError(t, err)
 	disk, err := cs.AddNewDisk(12)
 	require.NoError(t, err)
-	disk2, err := cs.GetDiskFromColor(12)
+	disk2, err := cs.getDiskFromColor(12)
 	require.NoError(t, err)
 	require.Same(t, disk, disk2)
 }
