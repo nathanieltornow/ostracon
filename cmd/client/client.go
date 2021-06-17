@@ -16,6 +16,7 @@ var (
 
 func main() {
 	flag.Parse()
+	time.Sleep(time.Second * 5)
 	conn, err := grpc.Dial(*parentIpAddr, grpc.WithInsecure())
 	if err != nil {
 		logrus.Fatalln("Failed making connection to seqshard")
@@ -26,12 +27,12 @@ func main() {
 	//time.Sleep(3 * time.Second)
 	i := 1
 	timeSum := time.Duration(0)
-	for range time.Tick(time.Second * 5) {
+	for range time.Tick(time.Second) {
 		if i > 9000 {
 			break
 		}
 		start := time.Now()
-		res, err := shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo"})
+		res, err := shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo", Color: 1})
 		appendTime := time.Since(start)
 		timeSum += appendTime
 

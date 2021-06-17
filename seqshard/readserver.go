@@ -21,14 +21,14 @@ func (s *SeqShard) ReportCommittedRecords(stream pb.Shard_ReportCommittedRecords
 		if err != nil {
 			return err
 		}
-		s.comRecCIncoming <- &committedRecord{gsn: req.Gsn, record: req.Record}
+		s.comRecCIncoming <- &committedRecord{gsn: req.Gsn, record: req.Record, color: req.Color}
 	}
 
 }
 
 func (s *SeqShard) sendCommittedRecords(stream pb.Shard_ReportCommittedRecordsServer, c chan *committedRecord) {
 	for rec := range c {
-		err := stream.Send(&pb.CommittedRecord{Gsn: rec.gsn, Record: rec.record})
+		err := stream.Send(&pb.CommittedRecord{Gsn: rec.gsn, Record: rec.record, Color: rec.color})
 		if err != nil {
 			return
 		}

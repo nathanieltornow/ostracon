@@ -2,6 +2,7 @@ package seqshard
 
 import (
 	"context"
+	"fmt"
 	pb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -14,17 +15,20 @@ type orderResponse struct {
 	startLsn     int64
 	numOfRecords int64
 	startGsn     int64
+	color        int64
 }
 
 type orderRequest struct {
 	startLsn     int64
 	numOfRecords int64
+	color        int64
 	stream       pb.Shard_GetOrderServer
 }
 
 type committedRecord struct {
 	gsn    int64
 	record string
+	color  int64
 }
 
 type SeqShard struct {
@@ -78,6 +82,14 @@ func (s *SeqShard) Start(ipAddr string, parentIpAddr string) error {
 
 	}
 	logrus.Infoln("Starting shardserver")
+	heartBeatTick := time.Tick(20 * time.Second)
+	go func() {
+		for {
+			<-heartBeatTick
+			fmt.Printf("Heartbeat: Processed %v records", s.sn)
+		}
+	}()
+
 	go s.broadcastComRec()
 	if err := grpcServer.Serve(lis); err != nil {
 		return err

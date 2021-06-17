@@ -37,7 +37,6 @@ func (p *Partition) Write(record string) (int64, error) {
 	p.Lock()
 	defer p.Unlock()
 	lsn := p.nextLSN
-	p.nextLSN++
 	ssn, err := p.activeSegment.Write(record)
 	if ssn >= p.segLen {
 		err := p.CreateSegment()
@@ -45,6 +44,7 @@ func (p *Partition) Write(record string) (int64, error) {
 			return 0, err
 		}
 	}
+	p.nextLSN++
 	return lsn, err
 }
 

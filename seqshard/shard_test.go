@@ -55,7 +55,7 @@ func TestRootShard(t *testing.T) {
 	}()
 
 	time.Sleep(time.Second)
-	for i := int64(0); i < 5; i++ {
+	for i := int64(0); i < 15; i++ {
 
 		if err := stream.Send(&pb.OrderRequest{StartLsn: i, NumOfRecords: 1}); err != nil {
 			t.Errorf("Failed to send Order Request")
