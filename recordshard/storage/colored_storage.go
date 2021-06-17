@@ -11,10 +11,12 @@ type ColoredStorage struct {
 	path        string
 }
 
-func NewColoredStorage(path string) *ColoredStorage {
+func NewColoredStorage(path string) (*ColoredStorage, error) {
 	cs := new(ColoredStorage)
 	cs.colorToDisk = make(map[int64]*Storage)
-	return cs
+	cs.path = path
+	_, err := cs.AddNewDisk(0)
+	return cs, err
 }
 
 func (cs *ColoredStorage) AddNewDisk(color int64) (*Storage, error) {
