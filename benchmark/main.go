@@ -47,7 +47,7 @@ func main() {
 		ovrLat += res.overallLatency
 	}
 	ovrLat = time.Duration(ovrLat.Nanoseconds() / int64(len(t.ShardIps)))
-	fmt.Println(ovrOps, ovrLat)
+	fmt.Printf("Appended %v records in %v seconds with average latency of %v\n", ovrOps, t.Runtime, ovrLat)
 }
 
 func appendBenchmark(ipAddr string, runtime time.Duration, interval time.Duration, resultC chan *bResult) {

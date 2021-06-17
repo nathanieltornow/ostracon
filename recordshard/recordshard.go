@@ -17,6 +17,11 @@ type lsnColorTuple struct {
 	color int64
 }
 
+type prevCurTuple struct {
+	prev int64
+	cur  int64
+}
+
 type record struct {
 	gsn    chan int64
 	record string
@@ -32,6 +37,9 @@ type RecordShard struct {
 
 	colorToPrevLsn map[int64]int64
 	curLsnMu       sync.Mutex
+
+	colorToLsnTuple   map[int64]int64
+	colorToLsnTupleMu sync.Mutex
 
 	writeC chan *record
 
@@ -60,6 +68,7 @@ func NewRecordShard(id int64, diskPath string, batchingInterval time.Duration) (
 	s.newComRecC = make(chan *spb.CommittedRecord, 4096)
 	s.replicaC = make(chan *rpb.CommittedRecord, 4096)
 	s.colorToPrevLsn = make(map[int64]int64)
+	s.colorToLsnTuple = make(map[int64]int64)
 	s.colorToPrevLsn[0] = -1
 	return s, nil
 }
@@ -86,7 +95,12 @@ func (rs *RecordShard) Start(ipAddr string, parentIpAddr string) error {
 	go func() {
 		for {
 			<-heartBeatTick
-			logrus.Infof("Heartbeat")
+			sum := int64(0)
+			for i, _ := range rs.colorToPrevLsn {
+				p, _ := rs.disk.GetCurrentLsn(i, true)
+				sum += p + 1
+			}
+			logrus.Infof("Heartbeat: Stored %v records", sum)
 		}
 	}()
 

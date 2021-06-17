@@ -1,7 +1,6 @@
 package recordshard
 
 import (
-	"fmt"
 	spb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -18,7 +17,6 @@ func (rs *RecordShard) sendOrderRequests(stream spb.Shard_GetOrderClient) {
 			if lsn == prevLsn {
 				continue
 			}
-
 			orderReq := spb.OrderRequest{StartLsn: prevLsn + 1, NumOfRecords: lsn - prevLsn, Color: color}
 			err = stream.Send(&orderReq)
 			if err != nil {
@@ -47,7 +45,6 @@ func (rs *RecordShard) receiveOrderResponses(stream spb.Shard_GetOrderClient) {
 
 		rs.lsnToRecordMu.Lock()
 		for i := int64(0); i < in.NumOfRecords; i++ {
-			fmt.Println("finding:", lsnColorTuple{color: in.Color, lsn: in.StartLsn + i})
 			rs.lsnToRecord[lsnColorTuple{color: in.Color, lsn: in.StartLsn + i}].gsn <- in.StartGsn + i
 			rs.newComRecC <- &spb.CommittedRecord{
 				Record: rs.lsnToRecord[lsnColorTuple{color: in.Color, lsn: in.StartLsn + i}].record,
