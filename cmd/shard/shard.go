@@ -15,6 +15,7 @@ var (
 	ipAddr           = flag.String("ipAddr", ":4000", "IP-Address of seqshard")
 	parentIpAddr     = flag.String("parentIpAddr", "", "The IpAddress of the parent-seqshard")
 	batchingInterval = flag.Duration("interval", time.Second, "Intervall to request ordering")
+	color            = flag.Int64("color", -1, "color of the shard")
 )
 
 func main() {
@@ -46,7 +47,7 @@ func startRecordShard() error {
 }
 
 func startSeqShard() error {
-	s, err := seqshard.NewSeqShard(*isRoot, *batchingInterval)
+	s, err := seqshard.NewSeqShard(*color, *isRoot, *batchingInterval)
 	if err != nil {
 		return err
 	}

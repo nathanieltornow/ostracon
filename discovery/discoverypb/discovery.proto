@@ -4,18 +4,19 @@ package discoverypb;
 option go_package = "github.com/nathanieltornow/ostracon/discovery/discoverypb";
 
 service Discovery {
-  rpc Discover(Empty) returns (DiscoveryResponse);
+  rpc Discover(Empty) returns (ColorShards);
   rpc RegisterShard(Shard) returns (Empty);
 }
 
-message DiscoveryResponse {
-  repeated Shard Shards = 1;
+message Shard {
+  string IpAddr = 1;
+
 }
 
-message Shard {
-  int64 ShardID = 1;
-  int64 Color = 2;
-  string IpAddr = 3;
+message ColorShards {
+  int64 Color = 1;
+  repeated string IpAddr = 2;
+
 }
 
 message Empty {}
