@@ -11,7 +11,7 @@ import (
 )
 
 func TestRootShard(t *testing.T) {
-	shardIpAddr := "localhost:3223"
+	shardIpAddr := "localhost:7000"
 	shard, err := NewSeqShard(0, true, time.Second)
 	if err != nil {
 		t.Errorf("Failed creating seqshard")
