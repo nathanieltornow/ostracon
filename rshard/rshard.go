@@ -16,17 +16,20 @@ type RecordShard struct {
 	pb.UnimplementedRecordShardServer
 
 	orderStream spb.Shard_GetOrderClient
+	subsStream  spb.Shard_ReportCommittedRecordsClient
 	interval    time.Duration
 
 	storagePath    string
 	colorToService map[int64]*colorService
 	orderReqC      chan *spb.OrderRequest
+	comRecC        chan *spb.CommittedRecord
 }
 
 func NewRecordShard(storagePath string, interval time.Duration) (*RecordShard, error) {
 	rs := new(RecordShard)
 	rs.colorToService = make(map[int64]*colorService)
 	rs.orderReqC = make(chan *spb.OrderRequest, 4096)
+	rs.comRecC = make(chan *spb.CommittedRecord, 4096)
 	rs.storagePath = storagePath
 	rs.interval = interval
 	return rs, nil
@@ -72,6 +75,12 @@ func (rs *RecordShard) connectToParent(parentIpAddr string) error {
 	}
 	rs.orderStream = orderStream
 
+	subsStream, err := client.ReportCommittedRecords(context.Background())
+	if err != nil {
+		return err
+	}
+	rs.subsStream = subsStream
+
 	var retErr error
 	go func() {
 		err := rs.sendOrderRequests()
@@ -85,11 +94,23 @@ func (rs *RecordShard) connectToParent(parentIpAddr string) error {
 			retErr = err
 		}
 	}()
+	go func() {
+		err := rs.sendCommittedRecords()
+		if err != nil {
+			retErr = err
+		}
+	}()
+	go func() {
+		err := rs.receiveCommittedRecords()
+		if err != nil {
+			retErr = err
+		}
+	}()
 	return retErr
 }
 
 func (rs *RecordShard) addColor(color int64) (*colorService, error) {
-	cs, err := newColorService(fmt.Sprintf("%v/%v", rs.storagePath, color), color, rs.orderReqC, rs.interval)
+	cs, err := newColorService(fmt.Sprintf("%v/%v", rs.storagePath, color), color, rs.orderReqC, rs.comRecC, rs.interval)
 	rs.Lock()
 	_, ok := rs.colorToService[color]
 	if ok {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	pb "github.com/nathanieltornow/ostracon/recordshard/recordshardpb"
+	pb "github.com/nathanieltornow/ostracon/rshard/rshardpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"time"
@@ -26,7 +26,7 @@ func main() {
 	shardClient := pb.NewRecordShardClient(conn)
 	time.Sleep(3 * time.Second)
 
-	stream, err := shardClient.Subscribe(context.Background(), &pb.ReadRequest{Gsn: *gsn, Color: 1})
+	stream, err := shardClient.Subscribe(context.Background(), &pb.ReadRequest{Gsn: *gsn, Color: 0})
 	if err != nil {
 		logrus.Fatalln(err)
 	}
