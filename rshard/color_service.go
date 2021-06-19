@@ -35,7 +35,7 @@ type colorService struct {
 	lsnToRecord map[int64]*record
 }
 
-func newColorService(storagePath string, color int64, orderC chan *spb.OrderRequest, interval time.Duration) (*colorService, error) {
+func newColorService(storagePath string, color int64, orderReqC chan *spb.OrderRequest, interval time.Duration) (*colorService, error) {
 
 	disk, err := storage.NewStorage(storagePath, 0, 2, 10000000)
 	if err != nil {
@@ -48,9 +48,11 @@ func newColorService(storagePath string, color int64, orderC chan *spb.OrderRequ
 	cs.priWriteC = make(chan *record, 2048)
 	cs.secWriteC = make(chan *spb.CommittedRecord, 2048)
 	cs.orderRespC = make(chan *spb.OrderResponse, 2048)
-	cs.orderReqC = orderC
+	cs.orderReqC = orderReqC
+	cs.orderC = make(chan *record, 2048)
 	cs.lsnToRecord = make(map[int64]*record)
 	cs.lsn = -1
+	fmt.Println("Creating color")
 	return cs, nil
 }
 
@@ -113,7 +115,11 @@ func (c *colorService) createOrderRequests() error {
 	b := true
 	for {
 		select {
+
 		case <-ticker:
+			if count == 0 {
+				continue
+			}
 			orderReq := spb.OrderRequest{StartLsn: startSn, NumOfRecords: count, Color: c.color}
 			c.orderReqC <- &orderReq
 			b = true

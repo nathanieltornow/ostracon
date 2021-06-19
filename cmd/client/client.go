@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	pb "github.com/nathanieltornow/ostracon/recordshard/recordshardpb"
+	pb "github.com/nathanieltornow/ostracon/rshard/rshardpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"time"
@@ -16,7 +16,6 @@ var (
 
 func main() {
 	flag.Parse()
-	time.Sleep(time.Second * 5)
 	conn, err := grpc.Dial(*parentIpAddr, grpc.WithInsecure())
 	if err != nil {
 		logrus.Fatalln("Failed making connection to seqshard")

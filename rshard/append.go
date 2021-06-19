@@ -12,6 +12,7 @@ func (rs *RecordShard) Append(_ context.Context, request *pb.AppendRequest) (*pb
 	if !ok {
 		var err error
 		cs, err = rs.addColor(request.Color)
+
 		if err != nil {
 			return nil, err
 		}

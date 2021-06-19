@@ -67,6 +67,9 @@ func (rs *RecordShard) connectToParent(parentIpAddr string) error {
 	}
 	client := spb.NewShardClient(conn)
 	orderStream, err := client.GetOrder(context.Background())
+	if err != nil {
+		return err
+	}
 	rs.orderStream = orderStream
 
 	var retErr error
@@ -86,7 +89,7 @@ func (rs *RecordShard) connectToParent(parentIpAddr string) error {
 }
 
 func (rs *RecordShard) addColor(color int64) (*colorService, error) {
-	cs, err := newColorService(fmt.Sprintf("%v/%v", rs.storagePath, color), 0, rs.orderReqC, rs.interval)
+	cs, err := newColorService(fmt.Sprintf("%v/%v", rs.storagePath, color), color, rs.orderReqC, rs.interval)
 	rs.Lock()
 	_, ok := rs.colorToService[color]
 	if ok {

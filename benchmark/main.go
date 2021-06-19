@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	pb "github.com/nathanieltornow/ostracon/recordshard/recordshardpb"
+	pb "github.com/nathanieltornow/ostracon/rshard/rshardpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"gopkg.in/yaml.v3"
@@ -71,7 +71,7 @@ out:
 		default:
 			<-ticker
 			start := time.Now()
-			_, err = shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo", Color: 1})
+			_, err = shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo", Color: 0})
 			if err != nil {
 				logrus.Errorf("failed to append")
 			}
