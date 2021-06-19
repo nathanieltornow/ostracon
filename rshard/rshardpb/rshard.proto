@@ -1,0 +1,26 @@
+syntax = "proto3";
+package rshardpb;
+
+option go_package = "github.com/nathanieltornow/ostracon/rshard/rshardpb";
+
+service RecordShard {
+  rpc Append(AppendRequest) returns (CommittedRecord);
+  rpc Subscribe(ReadRequest) returns (stream CommittedRecord);
+}
+
+message AppendRequest {
+  string Record = 1;
+  int64 Color = 2;
+}
+
+message CommittedRecord {
+  int64 Gsn = 1;
+  string Record = 2;
+  int64 Color = 3;
+}
+
+message ReadRequest {
+  int64 Gsn = 1;
+  int64 Color = 2;
+}
+

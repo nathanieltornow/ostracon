@@ -18,9 +18,7 @@ func (s *SeqShard) sendOrderRequests(stream pb.Shard_GetOrderClient) {
 			}
 			ordReq := pb.OrderRequest{StartLsn: prevSn, NumOfRecords: count}
 
-			s.snMu.Lock()
 			prevSn += count
-			s.snMu.Unlock()
 
 			err := stream.Send(&ordReq)
 			if err != nil {

@@ -10,15 +10,14 @@ func (rs *RecordShard) sendOrderRequests(stream spb.Shard_GetOrderClient) {
 	for range time.Tick(rs.batchingInterval) {
 		rs.curLsnMu.Lock()
 		for color, prevLsn := range rs.colorToPrevLsn {
-			lsn, err := rs.disk.GetCurrentLsn(color, true)
-			if err != nil {
-				return
-			}
+			rs.colorToLsnMu.Lock()
+			lsn, _ := rs.colorToLsn[color]
+			rs.colorToLsnMu.Lock()
 			if lsn == prevLsn {
 				continue
 			}
 			orderReq := spb.OrderRequest{StartLsn: prevLsn + 1, NumOfRecords: lsn - prevLsn, Color: color}
-			err = stream.Send(&orderReq)
+			err := stream.Send(&orderReq)
 			if err != nil {
 				logrus.Fatalln("Failed to send order requests")
 			}

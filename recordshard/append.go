@@ -24,17 +24,24 @@ func (rs *RecordShard) Append(ctx context.Context, request *rpb.AppendRequest) (
 func (rs *RecordShard) writeAppends() {
 	// consumes the write channel to write all incoming records
 	for rec := range rs.writeC {
+		// write the next record
+		lsn, err := rs.disk.Write(true, rec.record, rec.color)
+		if err != nil {
+			logrus.Fatalln(err)
+		}
 		rs.curLsnMu.Lock()
 		_, ok := rs.colorToPrevLsn[rec.color]
 		if !ok {
 			rs.colorToPrevLsn[rec.color] = -1
 		}
 		rs.curLsnMu.Unlock()
-		// write the next record
-		lsn, err := rs.disk.Write(true, rec.record, rec.color)
-		if err != nil {
-			logrus.Fatalln(err)
+		rs.colorToLsnMu.Lock()
+		_, ok = rs.colorToLsn[rec.color]
+		if !ok {
+			rs.colorToLsn[rec.color] = 0
 		}
+		rs.colorToLsnMu.Unlock()
+
 		// add record to map, so the gsn can be assigned for given lsn
 		rs.lsnToRecordMu.Lock()
 		rs.lsnToRecord[lsnColorTuple{lsn: lsn, color: rec.color}] = rec

@@ -39,8 +39,8 @@ type RecordShard struct {
 	colorToPrevLsn map[int64]int64
 	curLsnMu       sync.Mutex
 
-	colorToLsnTuple   map[int64]int64
-	colorToLsnTupleMu sync.Mutex
+	colorToLsn   map[int64]int64
+	colorToLsnMu sync.Mutex
 
 	writeC chan *record
 
@@ -69,7 +69,7 @@ func NewRecordShard(id int64, diskPath string, batchingInterval time.Duration) (
 	s.newComRecC = make(chan *spb.CommittedRecord, 4096)
 	s.replicaC = make(chan *rpb.CommittedRecord, 4096)
 	s.colorToPrevLsn = make(map[int64]int64)
-	s.colorToLsnTuple = make(map[int64]int64)
+	s.colorToLsn = make(map[int64]int64)
 	s.colorToPrevLsn[0] = -1
 	return s, nil
 }
