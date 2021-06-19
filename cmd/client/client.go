@@ -46,6 +46,15 @@ func main() {
 		timeSum += appendTime
 
 		fmt.Println(res, appendTime)
+
+		time.Sleep(3 * time.Second)
+
+		start = time.Now()
+		res, err = shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo", Color: 2})
+		appendTime = time.Since(start)
+		timeSum += appendTime
+
+		fmt.Println(res, appendTime)
 		if err != nil {
 			logrus.Fatalln(err)
 			return
