@@ -1,6 +1,6 @@
 
-seqshard1: go run cmd/shard/shard.go -isRoot -ipAddr localhost:4000
-#seqshard2: go run cmd/shard/shard.go -ipAddr localhost:4000 -parentIpAddr localhost:4001 -interval 100us
+seqshard1: go run cmd/shard/shard.go -isRoot -ipAddr localhost:4001 -color 0
+seqshard2: go run cmd/shard/shard.go -ipAddr localhost:4000 -parentIpAddr localhost:4001 -interval 100us -color 1
 
 recshard1: go run cmd/rshard/rshard.go -parentIpAddr localhost:4000 -ipAddr localhost:6000
 recshard2: go run cmd/rshard/rshard.go -parentIpAddr localhost:4000 -ipAddr localhost:6001

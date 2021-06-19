@@ -225,7 +225,6 @@ func (c *colorService) readStartingFromGsn(gsn int64, comRecC chan *pb.Committed
 			continue
 		}
 		comRec := pb.CommittedRecord{Record: r, Gsn: i, Color: c.color}
-		fmt.Println("putting in record", comRec.String())
 		comRecC <- &comRec
 	}
 }

@@ -26,10 +26,11 @@ func main() {
 	//time.Sleep(3 * time.Second)
 	i := 1
 	timeSum := time.Duration(0)
-	for range time.Tick(3 * time.Second) {
+	for {
 		if i > 9000 {
 			break
 		}
+		time.Sleep(3 * time.Second)
 		start := time.Now()
 		res, err := shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo", Color: 1})
 		appendTime := time.Since(start)
@@ -37,12 +38,14 @@ func main() {
 
 		fmt.Println(res, appendTime)
 
-		//start = time.Now()
-		//res, err = shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo", Color: 2})
-		//appendTime = time.Since(start)
-		//timeSum += appendTime
+		time.Sleep(3 * time.Second)
 
-		//fmt.Println(res, appendTime)
+		start = time.Now()
+		res, err = shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo", Color: 0})
+		appendTime = time.Since(start)
+		timeSum += appendTime
+
+		fmt.Println(res, appendTime)
 		if err != nil {
 			logrus.Fatalln(err)
 			return

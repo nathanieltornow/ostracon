@@ -31,6 +31,11 @@ type committedRecord struct {
 	color  int64
 }
 
+type snColorTuple struct {
+	sn    int64
+	color int64
+}
+
 type SeqShard struct {
 	pb.UnimplementedShardServer
 	color             int64
@@ -39,7 +44,7 @@ type SeqShard struct {
 	parentClient      *pb.ShardClient
 
 	sn               int64
-	waitingOrderReqs map[int64]*orderRequest
+	waitingOrderReqs map[snColorTuple]*orderRequest
 	snMu             sync.Mutex
 
 	orderRespCs   map[pb.Shard_GetOrderServer]chan *orderResponse
@@ -56,10 +61,11 @@ func NewSeqShard(color int64, isRoot bool, batchingIntervall time.Duration) (*Se
 	newShard.isRoot = isRoot
 	newShard.batchingIntervall = batchingIntervall
 	newShard.orderRespCs = make(map[pb.Shard_GetOrderServer]chan *orderResponse)
-	newShard.waitingOrderReqs = make(map[int64]*orderRequest)
+	newShard.waitingOrderReqs = make(map[snColorTuple]*orderRequest)
 	newShard.orderReqsC = make(chan *orderRequest, 4096)
 	newShard.comRecCIncoming = make(chan *committedRecord, 4096)
 	newShard.comRecCsOutgoing = make([]chan *committedRecord, 0)
+	newShard.color = color
 	return newShard, nil
 }
 
