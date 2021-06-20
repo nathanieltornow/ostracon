@@ -96,7 +96,7 @@ func (s *SeqShard) Start(ipAddr string, parentIpAddr string) error {
 	go func() {
 		for {
 			<-heartBeatTick
-			fmt.Printf("Heartbeat: Processed %v records", s.sn)
+			fmt.Printf("Heartbeat: Processed %v records\n", s.sn)
 		}
 	}()
 
