@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/nathanieltornow/ostracon/recshard"
 	"github.com/nathanieltornow/ostracon/seqshard"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -34,15 +35,14 @@ func main() {
 }
 
 func startRecordShard() error {
-	//recShard, err := recordshard.NewRecordShard(19, *storagePath, *batchingInterval)
-	//if err != nil {
-	//	return err
-	//}
-	//err = recShard.Start(*ipAddr, *parentIpAddr)
-	//if err != nil {
-	//	return err
-	//}
-	//return nil
+	recShard, err := recshard.NewRecordShard(*storagePath, *batchingInterval)
+	if err != nil {
+		return err
+	}
+	err = recShard.Start(*ipAddr, *parentIpAddr)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
