@@ -1,7 +1,6 @@
 package seqshard
 
 import (
-	"fmt"
 	pb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -20,7 +19,6 @@ func (s *SeqShard) sendOrderRequests(stream pb.Shard_GetOrderClient) {
 					continue
 				}
 				ordReq := pb.OrderRequest{StartLsn: prevSn, NumOfRecords: count, Color: color}
-				fmt.Println("Sending", ordReq.String(), ordReq.Color)
 				err := stream.Send(&ordReq)
 				if err != nil {
 					return
@@ -48,7 +46,6 @@ func (s *SeqShard) receiveOrderResponses(stream pb.Shard_GetOrderClient) {
 		}
 		s.snMu.Lock()
 		for i := int64(0); i < in.NumOfRecords; {
-			fmt.Println("getting", in.Color, in.StartLsn+i)
 			pendOR := s.waitingOrderReqs[snColorTuple{color: in.Color, sn: in.StartLsn + i}]
 			delete(s.waitingOrderReqs, snColorTuple{color: in.Color, sn: in.StartLsn + i})
 

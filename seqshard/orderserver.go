@@ -1,7 +1,6 @@
 package seqshard
 
 import (
-	"fmt"
 	pb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
 	"io"
 )
@@ -23,7 +22,6 @@ func (s *SeqShard) GetOrder(stream pb.Shard_GetOrderServer) error {
 		}
 
 		if s.isRoot || req.Color == s.color {
-			fmt.Println("root", s.isRoot, req.Color == s.color)
 			s.snMu.Lock()
 			res := pb.OrderResponse{StartGsn: s.sn, StartLsn: req.StartLsn, NumOfRecords: req.NumOfRecords, Color: req.Color}
 			s.sn += req.NumOfRecords
@@ -33,7 +31,6 @@ func (s *SeqShard) GetOrder(stream pb.Shard_GetOrderServer) error {
 			}
 
 		} else {
-
 			s.colorToSnMu.Lock()
 			sn, ok := s.colorToSn[req.Color]
 			if !ok {
@@ -42,8 +39,10 @@ func (s *SeqShard) GetOrder(stream pb.Shard_GetOrderServer) error {
 			}
 			s.colorToSn[req.Color] += req.NumOfRecords
 			s.colorToSnMu.Unlock()
-			oR := orderRequest{stream: stream, numOfRecords: req.NumOfRecords, startLsn: sn, color: req.Color}
+			oR := orderRequest{stream: stream, numOfRecords: req.NumOfRecords, startLsn: req.StartLsn, color: req.Color}
+			s.snMu.Lock()
 			s.waitingOrderReqs[snColorTuple{color: req.Color, sn: sn}] = &oR
+			s.snMu.Unlock()
 			s.orderReqsC <- &oR
 		}
 	}
