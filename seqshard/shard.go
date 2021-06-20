@@ -2,7 +2,6 @@ package seqshard
 
 import (
 	"context"
-	"fmt"
 	pb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -92,14 +91,6 @@ func (s *SeqShard) Start(ipAddr string, parentIpAddr string) error {
 
 	}
 	logrus.Infoln("Starting shardserver")
-	heartBeatTick := time.Tick(20 * time.Second)
-	go func() {
-		for {
-			<-heartBeatTick
-			fmt.Printf("Heartbeat: Processed %v records\n", s.sn)
-		}
-	}()
-
 	go s.broadcastComRec()
 	if err := grpcServer.Serve(lis); err != nil {
 		return err
