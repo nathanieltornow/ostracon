@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	pb "github.com/nathanieltornow/ostracon/recordshard/recordshardpb"
+	pb "github.com/nathanieltornow/ostracon/recshard/recshardpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"time"
@@ -16,7 +16,6 @@ var (
 
 func main() {
 	flag.Parse()
-	time.Sleep(time.Second * 5)
 	conn, err := grpc.Dial(*parentIpAddr, grpc.WithInsecure())
 	if err != nil {
 		logrus.Fatalln("Failed making connection to seqshard")
@@ -27,13 +26,32 @@ func main() {
 	//time.Sleep(3 * time.Second)
 	i := 1
 	timeSum := time.Duration(0)
-	for range time.Tick(time.Second) {
+	for {
 		if i > 9000 {
 			break
 		}
+		time.Sleep(3 * time.Second)
 		start := time.Now()
 		res, err := shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo", Color: 1})
 		appendTime := time.Since(start)
+		timeSum += appendTime
+
+		fmt.Println(res, appendTime)
+
+		time.Sleep(3 * time.Second)
+
+		start = time.Now()
+		res, err = shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo", Color: 0})
+		appendTime = time.Since(start)
+		timeSum += appendTime
+
+		fmt.Println(res, appendTime)
+
+		time.Sleep(3 * time.Second)
+
+		start = time.Now()
+		res, err = shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo", Color: 2})
+		appendTime = time.Since(start)
 		timeSum += appendTime
 
 		fmt.Println(res, appendTime)

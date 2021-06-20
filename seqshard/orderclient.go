@@ -7,29 +7,32 @@ import (
 )
 
 func (s *SeqShard) sendOrderRequests(stream pb.Shard_GetOrderClient) {
-	count := int64(0)
-	prevSn := int64(0)
+	prevSns := make(map[int64]int64)
+	counts := make(map[int64]int64)
 	ticker := time.Tick(s.batchingIntervall)
 	for {
 		select {
 		case <-ticker:
-			if count == 0 {
-				continue
+			for color, prevSn := range prevSns {
+				count := counts[color]
+				if count == 0 {
+					continue
+				}
+				ordReq := pb.OrderRequest{StartLsn: prevSn, NumOfRecords: count, Color: color}
+				err := stream.Send(&ordReq)
+				if err != nil {
+					return
+				}
+				prevSns[color] += count
+				counts[color] = 0
 			}
-			ordReq := pb.OrderRequest{StartLsn: prevSn, NumOfRecords: count}
-
-			s.snMu.Lock()
-			prevSn += count
-			s.snMu.Unlock()
-
-			err := stream.Send(&ordReq)
-			if err != nil {
-				return
-			}
-			count = 0
-
 		case iOR := <-s.orderReqsC:
-			count += iOR.numOfRecords
+			_, ok := prevSns[iOR.color]
+			if !ok {
+				prevSns[iOR.color] = 0
+				counts[iOR.color] = 0
+			}
+			counts[iOR.color] += iOR.numOfRecords
 		}
 	}
 }
@@ -41,11 +44,10 @@ func (s *SeqShard) receiveOrderResponses(stream pb.Shard_GetOrderClient) {
 		if err != nil {
 			logrus.Fatalln("Failed to receive order requests")
 		}
-
 		s.snMu.Lock()
 		for i := int64(0); i < in.NumOfRecords; {
-			pendOR := s.waitingOrderReqs[in.StartLsn+i]
-			delete(s.waitingOrderReqs, in.StartLsn+i)
+			pendOR := s.waitingOrderReqs[snColorTuple{color: in.Color, sn: in.StartLsn + i}]
+			delete(s.waitingOrderReqs, snColorTuple{color: in.Color, sn: in.StartLsn + i})
 
 			s.orderRespCs[pendOR.stream] <- &orderResponse{
 				numOfRecords: pendOR.numOfRecords,

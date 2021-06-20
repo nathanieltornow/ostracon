@@ -31,13 +31,18 @@ func (s *SeqShard) GetOrder(stream pb.Shard_GetOrderServer) error {
 			}
 
 		} else {
-
-			s.snMu.Lock()
+			s.colorToSnMu.Lock()
+			sn, ok := s.colorToSn[req.Color]
+			if !ok {
+				s.colorToSn[req.Color] = 0
+				sn = 0
+			}
+			s.colorToSn[req.Color] += req.NumOfRecords
+			s.colorToSnMu.Unlock()
 			oR := orderRequest{stream: stream, numOfRecords: req.NumOfRecords, startLsn: req.StartLsn, color: req.Color}
-			s.waitingOrderReqs[s.sn] = &oR
-			s.sn += req.NumOfRecords
+			s.snMu.Lock()
+			s.waitingOrderReqs[snColorTuple{color: req.Color, sn: sn}] = &oR
 			s.snMu.Unlock()
-
 			s.orderReqsC <- &oR
 		}
 	}
