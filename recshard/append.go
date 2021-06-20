@@ -1,8 +1,8 @@
-package rshard
+package recshard
 
 import (
 	"context"
-	pb "github.com/nathanieltornow/ostracon/rshard/rshardpb"
+	pb "github.com/nathanieltornow/ostracon/recshard/recshardpb"
 )
 
 func (rs *RecordShard) Append(_ context.Context, request *pb.AppendRequest) (*pb.CommittedRecord, error) {

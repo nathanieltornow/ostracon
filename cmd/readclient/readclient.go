@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	pb "github.com/nathanieltornow/ostracon/rshard/rshardpb"
+	pb "github.com/nathanieltornow/ostracon/recshard/recshardpb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"time"

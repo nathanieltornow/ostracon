@@ -1,4 +1,4 @@
-package rshard
+package recshard
 
 import (
 	"fmt"

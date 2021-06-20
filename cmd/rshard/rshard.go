@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/nathanieltornow/ostracon/rshard"
+	"github.com/nathanieltornow/ostracon/recshard"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -15,7 +15,7 @@ var (
 func main() {
 	flag.Parse()
 
-	rs, err := rshard.NewRecordShard("tmp2", time.Microsecond*100)
+	rs, err := recshard.NewRecordShard("tmp2", time.Microsecond*100)
 	if err != nil {
 		logrus.Fatalln(err)
 	}

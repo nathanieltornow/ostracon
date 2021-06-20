@@ -1,9 +1,9 @@
-package rshard
+package recshard
 
 import (
 	"fmt"
-	pb "github.com/nathanieltornow/ostracon/rshard/rshardpb"
-	"github.com/nathanieltornow/ostracon/rshard/storage"
+	pb "github.com/nathanieltornow/ostracon/recshard/recshardpb"
+	"github.com/nathanieltornow/ostracon/recshard/storage"
 	spb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
 	"sync"
 	"time"

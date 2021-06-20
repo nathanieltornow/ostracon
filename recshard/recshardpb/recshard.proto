@@ -1,7 +1,7 @@
 syntax = "proto3";
-package rshardpb;
+package recshardpb;
 
-option go_package = "github.com/nathanieltornow/ostracon/rshard/rshardpb";
+option go_package = "github.com/nathanieltornow/ostracon/recshard/recshardpb";
 
 service RecordShard {
   rpc Append(AppendRequest) returns (CommittedRecord);
