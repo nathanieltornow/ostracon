@@ -1,5 +1,3 @@
-[![go](https://github.com/nathanieltornow/ostracon/actions/workflows/go.yml/badge.svg)](https://github.com/nathanieltornow/ostracon/actions/workflows/go.yml)
-
 # ostracon
 
 Ostracon is a shared-log system build on the persistence-first strategy introduced 
@@ -7,8 +5,11 @@ by [Scalog](https://www.usenix.org/conference/nsdi20/presentation/ding).
 
 ## Quickstart
 
-Prerequisites: [Go](https://golang.org/) (version >= 1.15) and 
-[Make](https://www.gnu.org/software/make/)
+Tested on Ubuntu 18.04 and macOS Big Sur.
+
+**Prerequisites**: 
+- [Go](https://golang.org/) (version >= 1.15). If you're using Linux, you can use `./scripts/install_go.sh && source ~/.profile` to install.
+- [Make](https://www.gnu.org/software/make/)
 
 1. Clone this repository and go in the root-folder.
 ```shell
