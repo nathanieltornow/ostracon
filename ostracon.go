@@ -30,6 +30,7 @@ func main() {
 	}
 
 	if *subscribeFlag {
+		fmt.Printf("Subscribing to color %v. Press 'q' to stop.", *color)
 		resultC := make(chan *client.Record, 64)
 		go func() {
 			err := client.Subscribe(*gsn, *color, resultC)
@@ -50,7 +51,7 @@ func main() {
 		}()
 
 		for rec := range resultC {
-			fmt.Printf("Record: \"%v\" | Sequence number: %v, %v\n", rec.Record, rec.Gsn, rec.ShardIP)
+			fmt.Printf("Record: \"%v\" | Sequence number: %v | Color: %v\n", rec.Record, rec.Gsn, rec.Color)
 		}
 	} else if *appendFlag {
 
@@ -58,6 +59,6 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Printf("Appended record \"%v\" with sequence number %v, %v\n", rec.Record, rec.Gsn, rec.ShardIP)
+		fmt.Printf("Appended record \"%v\" with sequence number %v to color %v\n", rec.Record, rec.Gsn, rec.Color)
 	}
 }

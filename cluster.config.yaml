@@ -1,0 +1,29 @@
+shards:
+  - type: sequencer
+    ip: "localhost:6000"
+    color: 0
+    root: True
+
+  - type: sequencer
+    ip: "localhost:6001"
+    parent_ip: "localhost:6000"
+    color: 1
+    interval: 1ms
+
+  - type: sequencer
+    ip: "localhost:6002"
+    parent_ip: "localhost:6000"
+    color: 2
+    interval: 1ms
+
+  - type: record
+    ip: "localhost:4000"
+    parent_ip: "localhost:6001"
+    interval: 1ms
+    disk: "tmp/rec1"
+
+  - type: record
+    ip: "localhost:4003"
+    parent_ip: "localhost:6002"
+    interval: 1ms
+    disk: "tmp/rec3"

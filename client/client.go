@@ -11,9 +11,9 @@ import (
 )
 
 type Record struct {
-	Record  string
-	Gsn     int64
-	ShardIP string
+	Record string
+	Gsn    int64
+	Color  int64
 }
 
 func Append(color int64, record string) (*Record, error) {
@@ -39,7 +39,7 @@ func Append(color int64, record string) (*Record, error) {
 	if err != nil || res == nil {
 		return nil, fmt.Errorf("failed to append record\n")
 	}
-	return &Record{Record: res.Record, Gsn: res.Gsn, ShardIP: ip}, nil
+	return &Record{Record: res.Record, Gsn: res.Gsn, Color: res.Color}, nil
 
 }
 
@@ -68,7 +68,6 @@ func Subscribe(gsn, color int64, resultC chan *Record) error {
 }
 
 func subscribeToSingleShard(ipAddr string, gsn, color int64, resultC chan *Record) error {
-	fmt.Println(ipAddr)
 	conn, err := grpc.Dial(ipAddr, grpc.WithInsecure())
 	if err != nil {
 		return fmt.Errorf("failed to make connection: %v\n", err)
@@ -83,9 +82,8 @@ func subscribeToSingleShard(ipAddr string, gsn, color int64, resultC chan *Recor
 	for {
 		in, err := stream.Recv()
 		if err != nil {
-			fmt.Println(err)
 			return err
 		}
-		resultC <- &Record{Record: in.Record, Gsn: in.Gsn, ShardIP: ipAddr}
+		resultC <- &Record{Record: in.Record, Gsn: in.Gsn, Color: color}
 	}
 }
