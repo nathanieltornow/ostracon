@@ -30,7 +30,7 @@ func main() {
 	}
 
 	if *subscribeFlag {
-		fmt.Printf("Subscribing to color %v. Press 'q' to stop.", *color)
+		fmt.Printf("Subscribing to color %v. Press 'q' to stop.\n", *color)
 		resultC := make(chan *client.Record, 64)
 		go func() {
 			err := client.Subscribe(*gsn, *color, resultC)
