@@ -5,6 +5,8 @@ by [Scalog](https://www.usenix.org/conference/nsdi20/presentation/ding).
 
 ## Quickstart
 
+Tested on Ubuntu 18.04 and macOS Big Sur.
+
 Prerequisites: [Go](https://golang.org/) (version >= 1.15) and 
 [Make](https://www.gnu.org/software/make/)
 
