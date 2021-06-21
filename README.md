@@ -33,13 +33,7 @@ make
 
 # Subscribe to all records on color 1, starting from sequence-number 8
 ./ostracon -s -gsn 8 -color 1
-```
 
-- Appending
-    ```shell
-    ./ostracon -a -record HelloWorld -color 0 
-    ```
-- Subscribing
-     ```shell
-    ./ostracon -s -gsn  
-    ```
+# Print usage
+./ostracon --help
+```
