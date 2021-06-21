@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	pb "github.com/nathanieltornow/ostracon/recshard/recshardpb"
 	"github.com/sirupsen/logrus"
@@ -21,6 +22,10 @@ type bResult struct {
 	operations     int
 	overallLatency time.Duration
 }
+
+var (
+	read = flag.Bool("read", false, "")
+)
 
 func main() {
 	buf, err := ioutil.ReadFile("benchmark/benchmark.config.yaml")
@@ -89,4 +94,10 @@ out:
 	}
 	lat := time.Duration(latencysum.Nanoseconds() / int64(i))
 	resultC <- &bResult{operations: i, overallLatency: lat}
+}
+
+type toRead struct {
+	ackTime time.Time
+	gsn     int64
+	record  string
 }

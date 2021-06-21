@@ -14,7 +14,6 @@ func (rs *RecordShard) Subscribe(r *pb.ReadRequest, stream pb.RecordShard_Subscr
 		return fmt.Errorf("color isn't supported on this shard")
 	}
 	subscribeC := make(chan *pb.CommittedRecord, 2048)
-	fmt.Println("Start subs")
 	subId := cs.subscribe(r.Gsn, subscribeC)
 	for comRec := range subscribeC {
 		err := stream.Send(comRec)

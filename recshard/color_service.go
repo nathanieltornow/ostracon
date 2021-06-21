@@ -138,7 +138,7 @@ func (c *colorService) secondaryWrites() error {
 			return fmt.Errorf("failed to sec-assign record: %v", rec.Record)
 		}
 		c.secGsnMu.Lock()
-		c.secGsn++
+		c.secGsn = rec.Gsn
 		c.secGsnMu.Unlock()
 		c.subCsMu.Lock()
 		for _, comRecC := range c.subCs {
@@ -219,7 +219,7 @@ func (c *colorService) readStartingFromGsn(gsn int64, comRecC chan *pb.Committed
 	c.secGsnMu.Lock()
 	to := c.secGsn
 	c.secGsnMu.Unlock()
-	for i := gsn; i < to; i++ {
+	for i := gsn; i <= to; i++ {
 		r, err := c.disk.ReadGSN(1, i)
 		if err != nil {
 			continue
