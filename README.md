@@ -37,3 +37,26 @@ make
 # Print usage
 ./ostracon --help
 ```
+
+## Configuration
+
+The cluster can be configured by modifying `cluster.config.yaml`, where a list of 
+shards (sequencer-shards and record-shards) are defined, which will be started on
+`make start-cluster`.
+
+**Important:** Don't modify the system at runtime of a cluster.
+
+A shard is described using the following properties:
+
+```text
+type:       If it is a record- or a sequencer-shard (sequencer or record).
+ip:         The IP-address, where the shard should be served.
+parent_ip:  The IP-address of the overlying shard.
+root:       If the shard is the root of the system (only for sequencer-shards).
+            Exactly one shard has to be root!
+color:      Distinct color, that a shard represents (only for sequencer-shards).
+interval:   The intervall with which order-requests should be sent to parents.
+            E.g. 1ms, 10s, 900us, ...
+disk:       Path to where the log should be stored (only for record-shards).
+            Has to be distinct in order to prevent overriding!
+```
