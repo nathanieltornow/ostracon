@@ -9,7 +9,7 @@ Tested on Ubuntu 18.04 and macOS Big Sur.
 
 **Prerequisites**: 
 - [Go](https://golang.org/) (version >= 1.15). If you're using Linux, you can use `./scripts/install_go.sh && source ~/.profile` to install.
-- [Make](https://www.gnu.org/software/make/). 
+- [Make](https://www.gnu.org/software/make/)
 
 1. Clone this repository and go in the root-folder.
 ```shell
