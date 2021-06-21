@@ -8,7 +8,7 @@ by [Scalog](https://www.usenix.org/conference/nsdi20/presentation/ding).
 Tested on Ubuntu 18.04 and macOS Big Sur.
 
 **Prerequisites**: 
-- [Go](https://golang.org/) (version >= 1.15). If you're using Linux, you can use `./scripts/install_go.sh && source ~/.profile` to install.
+- [Go](https://golang.org/) (version >= 1.15). If you're using Linux, you can use `./scripts/install_go.sh && source ~/.profile`.
 - [Make](https://www.gnu.org/software/make/)
 
 1. Clone this repository and go in the root-folder.
@@ -61,3 +61,4 @@ interval:   The intervall with which order-requests should be sent to parents.
 disk:       Path to where the log should be stored (only for record-shards).
             Has to be distinct in order to prevent overriding!
 ```
+
