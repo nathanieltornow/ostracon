@@ -10,7 +10,7 @@ by [Scalog](https://www.usenix.org/conference/nsdi20/presentation/ding).
 Prerequisites: [Go](https://golang.org/) (version >= 1.15) and 
 [Make](https://www.gnu.org/software/make/)
 
-1. Clone this repository.
+1. Clone this repository and go in the root-folder.
 ```shell
 git clone https://github.com/nathanieltornow/ostracon.git && \
 cd ostracon
