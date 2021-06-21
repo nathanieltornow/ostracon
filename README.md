@@ -7,23 +7,39 @@ by [Scalog](https://www.usenix.org/conference/nsdi20/presentation/ding).
 
 ## Quickstart
 
-1. Clone this repository
+Prerequisites: [Go](https://golang.org/) (version >= 1.15) and 
+[Make](https://www.gnu.org/software/make/)
+
+1. Clone this repository.
 ```shell
 git clone https://github.com/nathanieltornow/ostracon.git && \
 cd ostracon
 ```
-2. Install [Go](https://golang.org/), if you haven't already:
+
+2. Start a sample cluster.
 ```shell
-# For Ubuntu:
-./scripts/install_go.sh && source ~/.profile
+make start-cluster
 ```
 
-3. Install [goreman](https://github.com/mattn/goreman):
+3. In another terminal, build the client-library.
 ```shell
-go get github.com/mattn/goreman
+make
 ```
 
-4. Run the ostracon-cluster:
+4. Append and subscribe on the shared log. For example:
 ```shell
-goreman start
+# Append the record "HelloWorld" to color 0
+./ostracon -a -record HelloWorld -color 0 
+
+# Subscribe to all records on color 1, starting from sequence-number 8
+./ostracon -s -gsn 8 -color 1
 ```
+
+- Appending
+    ```shell
+    ./ostracon -a -record HelloWorld -color 0 
+    ```
+- Subscribing
+     ```shell
+    ./ostracon -s -gsn  
+    ```

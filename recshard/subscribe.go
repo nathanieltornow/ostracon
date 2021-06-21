@@ -16,6 +16,9 @@ func (rs *RecordShard) Subscribe(r *pb.ReadRequest, stream pb.RecordShard_Subscr
 	subscribeC := make(chan *pb.CommittedRecord, 2048)
 	subId := cs.subscribe(r.Gsn, subscribeC)
 	for comRec := range subscribeC {
+		if comRec.Gsn < r.Gsn {
+			continue
+		}
 		err := stream.Send(comRec)
 		if err != nil {
 			cs.removeSubscription(subId)
