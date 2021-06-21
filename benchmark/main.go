@@ -9,6 +9,8 @@ import (
 	"google.golang.org/grpc"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
+	"log"
+	"os"
 	"time"
 )
 
@@ -54,6 +56,16 @@ func main() {
 	ovrLat = time.Duration(ovrLat.Nanoseconds() / int64(len(t.ShardIps)))
 	fmt.Printf("Appended %v records in %v seconds with an average latency of %v\n", ovrOps, t.Runtime, ovrLat)
 	fmt.Printf("Throughput: %v ops/sec\n", float64(ovrOps)/t.Runtime.Seconds())
+
+	f, err := os.OpenFile("benchmark_result.csv",
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Println(err)
+	}
+	defer f.Close()
+	if _, err := f.WriteString(fmt.Sprintf("%v, %v", ovrOps, ovrLat)); err != nil {
+		log.Println(err)
+	}
 }
 
 func appendBenchmark(ipAddr string, runtime time.Duration, interval time.Duration, resultC chan *bResult) {
