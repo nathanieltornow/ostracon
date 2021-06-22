@@ -44,7 +44,7 @@ func main() {
 
 	resC := make(chan *bResult, len(t.ShardIps))
 	for i := 0; i < len(t.ShardIps); i++ {
-		go appendBenchmark(t.ShardIps[i], t.Runtime, interval, resC)
+		go appendBenchmark(t.ShardIps[i], false, t.Runtime, interval, resC)
 	}
 	ovrOps := 0
 	ovrLat := time.Duration(0)
@@ -57,18 +57,18 @@ func main() {
 	fmt.Printf("Appended %v records in %v seconds with an average latency of %v\n", ovrOps, t.Runtime, ovrLat)
 	fmt.Printf("Throughput: %v ops/sec\n", float64(ovrOps)/t.Runtime.Seconds())
 
-	f, err := os.OpenFile("benchmark_result.csv",
+	f, err := os.OpenFile("result.csv",
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println(err)
 	}
 	defer f.Close()
-	if _, err := f.WriteString(fmt.Sprintf("%v, %v", ovrOps, ovrLat)); err != nil {
+	if _, err := f.WriteString(fmt.Sprintf("%v, %v\n", float64(ovrOps)/t.Runtime.Seconds(), ovrLat.Microseconds())); err != nil {
 		log.Println(err)
 	}
 }
 
-func appendBenchmark(ipAddr string, runtime time.Duration, interval time.Duration, resultC chan *bResult) {
+func appendBenchmark(ipAddr string, isWriter bool, runtime time.Duration, interval time.Duration, resultC chan *bResult) {
 	ticker := time.Tick(interval)
 	conn, err := grpc.Dial(ipAddr, grpc.WithInsecure())
 	if err != nil {
@@ -111,5 +111,35 @@ out:
 type toRead struct {
 	ackTime time.Time
 	gsn     int64
-	record  string
+}
+
+//func subscribeBenchmark(ipAddr string, toReadC chan *toRead) time.Duration {
+//conn, err := grpc.Dial(ipAddr, grpc.WithInsecure())
+//if err != nil {
+//	logrus.Errorf("Failed making connection to shard")
+//}
+//defer conn.Close()
+//shardClient := pb.NewRecordShardClient(conn)
+//outC := make(chan *pb.CommittedRecord, 8192)
+//firstToRead := <- toReadC
+//firstGSN := firstToRead.gsn
+//currentSubGSN := int64(0)
+//
+//go subscribe(shardClient, firstGSN, outC)
+//overallTime := time.Duration(0)
+//for tR := range toReadC {
+//	if tR.gsn < currentSubGSN {
+//		panic("gsn not in a sequence")
+//	}
+//	currentSubGSN = tR.gsn
+//	for comRec := range outC {
+//		if comRec.Gsn == tR.gsn {
+//			overallTime += time.Since(tR.ackTime)
+//		}
+//	}
+//}
+//}
+
+func subscribe(client pb.RecordShardClient, gsn int64, outC chan *pb.CommittedRecord) {
+
 }
