@@ -2,4 +2,4 @@ shard_ips:
   - ":6001"
   - ":6002"
 ops: 10000 # operations per second for each shard
-runtime: 10s # overall runtime
+runtime: 10s # overall runtimessh -p 22 nate00@hp159.utah.cloudlab.us

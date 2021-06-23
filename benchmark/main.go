@@ -27,6 +27,7 @@ type bResult struct {
 
 var (
 	read = flag.Bool("read", false, "")
+	wr   = flag.Bool("wr", false, "")
 )
 
 func main() {
@@ -41,10 +42,14 @@ func main() {
 	}
 	flag.Parse()
 	if *read {
-		err = subscribe(t.ShardIps[1], 100)
+		err = subscribe(t.ShardIps[1])
 		if err != nil {
 			panic(err)
 		}
+		return
+	}
+	if *wr {
+		append2(t.ShardIps[1])
 		return
 	}
 
@@ -119,12 +124,53 @@ out:
 	resultC <- &bResult{operations: i, overallLatency: lat}
 }
 
-type gsnTime struct {
-	time time.Time
-	gsn  int64
+type numTime struct {
+	time      time.Time
+	numOfRecs int
 }
 
-func subscribe(ipAddr string, toGsn int64) error {
+func append2(ipAddr string) {
+	conn, err := grpc.Dial(ipAddr, grpc.WithInsecure())
+	if err != nil {
+		logrus.Errorf("Failed making connection to shard")
+	}
+	defer conn.Close()
+	shardClient := pb.NewRecordShardClient(conn)
+	nextMinute := time.Now().Truncate(time.Minute).Add(time.Minute)
+	fmt.Printf("Append benchmark scheduled for %v\n", nextMinute)
+
+	result := make([]*numTime, 0)
+
+	// wait for benchmark to start
+	<-time.After(time.Until(nextMinute))
+	for i := 0; i < 100000; i++ {
+		_, err = shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo", Color: 0})
+		if err != nil {
+			logrus.Errorf("failed to append")
+			return
+		}
+		now := time.Now()
+		if i%1000 == 0 {
+			result = append(result, &numTime{now, i})
+		}
+	}
+	f, err := os.OpenFile("append.csv",
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Println(err)
+	}
+	defer f.Close()
+	for _, v := range result {
+		if _, err := f.WriteString(fmt.Sprintf("%v, %v\n", v.numOfRecs, v.time)); err != nil {
+			log.Println(err)
+		}
+	}
+	if _, err := f.WriteString(fmt.Sprintf("\n")); err != nil {
+		log.Println(err)
+	}
+}
+
+func subscribe(ipAddr string) error {
 	conn, err := grpc.Dial(ipAddr, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("Failed making connection to shard")
@@ -139,18 +185,31 @@ func subscribe(ipAddr string, toGsn int64) error {
 	fmt.Printf("Read/Write benchmark scheduled for %v\n", nextMinute)
 
 	<-time.After(time.Until(nextMinute))
-	fmt.Printf("jh")
-	startTime := time.Now()
-	for {
-		in, err := stream.Recv()
+	result := make([]*numTime, 0)
+
+	for i := 0; i < 100000; i++ {
+		_, err := stream.Recv()
 		if err != nil {
 			return err
 		}
-		fmt.Println(in)
-		if in.Gsn > toGsn {
-			break
+		now := time.Now()
+		if i%1000 == 0 {
+			result = append(result, &numTime{now, i})
 		}
 	}
-	fmt.Println(time.Since(startTime))
+	f, err := os.OpenFile("append.csv",
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Println(err)
+	}
+	defer f.Close()
+	for _, v := range result {
+		if _, err := f.WriteString(fmt.Sprintf("%v, %v\n", v.numOfRecs, v.time)); err != nil {
+			log.Println(err)
+		}
+	}
+	if _, err := f.WriteString(fmt.Sprintf("\n")); err != nil {
+		log.Println(err)
+	}
 	return nil
 }
