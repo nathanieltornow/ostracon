@@ -1,5 +1,4 @@
 shard_ips:
-  - ":6000"
   - ":6001"
   - ":6002"
 ops: 10000 # operations per second for each shard

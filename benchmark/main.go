@@ -39,6 +39,14 @@ func main() {
 	if err != nil {
 		logrus.Fatalln("failed to unmarshal config")
 	}
+	flag.Parse()
+	if *read {
+		err = subscribe(t.ShardIps[1], 100)
+		if err != nil {
+			panic(err)
+		}
+		return
+	}
 
 	interval := time.Duration(time.Second.Nanoseconds() / int64(t.Ops))
 
@@ -111,38 +119,38 @@ out:
 	resultC <- &bResult{operations: i, overallLatency: lat}
 }
 
-type toRead struct {
-	ackTime time.Time
-	gsn     int64
+type gsnTime struct {
+	time time.Time
+	gsn  int64
 }
 
-//func subscribeBenchmark(ipAddr string, toReadC chan *toRead) time.Duration {
-//conn, err := grpc.Dial(ipAddr, grpc.WithInsecure())
-//if err != nil {
-//	logrus.Errorf("Failed making connection to shard")
-//}
-//defer conn.Close()
-//shardClient := pb.NewRecordShardClient(conn)
-//outC := make(chan *pb.CommittedRecord, 8192)
-//firstToRead := <- toReadC
-//firstGSN := firstToRead.gsn
-//currentSubGSN := int64(0)
-//
-//go subscribe(shardClient, firstGSN, outC)
-//overallTime := time.Duration(0)
-//for tR := range toReadC {
-//	if tR.gsn < currentSubGSN {
-//		panic("gsn not in a sequence")
-//	}
-//	currentSubGSN = tR.gsn
-//	for comRec := range outC {
-//		if comRec.Gsn == tR.gsn {
-//			overallTime += time.Since(tR.ackTime)
-//		}
-//	}
-//}
-//}
+func subscribe(ipAddr string, toGsn int64) error {
+	conn, err := grpc.Dial(ipAddr, grpc.WithInsecure())
+	if err != nil {
+		logrus.Errorf("Failed making connection to shard")
+	}
+	defer conn.Close()
+	sClient := pb.NewRecordShardClient(conn)
+	stream, err := sClient.Subscribe(context.Background(), &pb.ReadRequest{Gsn: 0, Color: 0})
+	if err != nil {
+		return err
+	}
+	nextMinute := time.Now().Truncate(time.Minute).Add(time.Minute)
+	fmt.Printf("Read/Write benchmark scheduled for %v\n", nextMinute)
 
-func subscribe(client pb.RecordShardClient, gsn int64, outC chan *pb.CommittedRecord) {
-
+	<-time.After(time.Until(nextMinute))
+	fmt.Printf("jh")
+	startTime := time.Now()
+	for {
+		in, err := stream.Recv()
+		if err != nil {
+			return err
+		}
+		fmt.Println(in)
+		if in.Gsn > toGsn {
+			break
+		}
+	}
+	fmt.Println(time.Since(startTime))
+	return nil
 }
