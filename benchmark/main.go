@@ -42,19 +42,19 @@ func main() {
 
 	interval := time.Duration(time.Second.Nanoseconds() / int64(t.Ops))
 
-	for j := 1; j < 100; j++ {
+	for j := 15; j < 100; j++ {
 		resC := make(chan *bResult, len(t.ShardIps))
 		for i := 0; i < j; i++ {
 			go appendBenchmark(t.ShardIps[0], false, t.Runtime, interval, resC)
 		}
 		ovrOps := 0
 		ovrLat := time.Duration(0)
-		for i := 0; i < len(t.ShardIps); i++ {
+		for i := 0; i < j; i++ {
 			res := <-resC
 			ovrOps += res.operations
 			ovrLat += res.overallLatency
 		}
-		ovrLat = time.Duration(ovrLat.Nanoseconds() / int64(len(t.ShardIps)))
+		ovrLat = time.Duration(ovrLat.Nanoseconds() / int64(j))
 		fmt.Printf("Appended %v records in %v seconds with an average latency of %v\n", ovrOps, t.Runtime, ovrLat)
 		fmt.Printf("Throughput: %v ops/sec\n", float64(ovrOps)/t.Runtime.Seconds())
 
