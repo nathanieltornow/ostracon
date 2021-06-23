@@ -26,8 +26,7 @@ type bResult struct {
 }
 
 var (
-	read = flag.Bool("read", false, "")
-	wr   = flag.Bool("wr", false, "")
+	read = flag.Int("read", 0, "")
 )
 
 func main() {
@@ -41,15 +40,19 @@ func main() {
 		logrus.Fatalln("failed to unmarshal config")
 	}
 	flag.Parse()
-	if *read {
-		err = subscribe(t.ShardIps[1])
+	if *read > 0 {
+		resultC := make(chan time.Duration, 1)
+		readWrite(t.ShardIps[0], t.ShardIps[1], *read, 10, resultC)
+		resDur := <-resultC
+		f, err := os.OpenFile("read_result.csv",
+			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			panic(err)
+			log.Println(err)
 		}
-		return
-	}
-	if *wr {
-		append2(t.ShardIps[1])
+		defer f.Close()
+		if _, err := f.WriteString(fmt.Sprintf("%v, %v\n", *read, resDur.Microseconds())); err != nil {
+			log.Println(err)
+		}
 		return
 	}
 
@@ -124,53 +127,48 @@ out:
 	resultC <- &bResult{operations: i, overallLatency: lat}
 }
 
-type numTime struct {
-	time      time.Time
-	numOfRecs int
+type fromTo struct {
+	from int64
+	to   int64
 }
 
-func append2(ipAddr string) {
+func readWrite(ipAddr, readIpAddr string, numOfRecords, times int, resultC chan time.Duration) {
 	conn, err := grpc.Dial(ipAddr, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("Failed making connection to shard")
 	}
 	defer conn.Close()
 	shardClient := pb.NewRecordShardClient(conn)
-	nextMinute := time.Now().Truncate(time.Minute).Add(time.Minute)
-	fmt.Printf("Append benchmark scheduled for %v\n", nextMinute)
 
-	result := make([]*numTime, 0)
+	readerC := make(chan *fromTo, 64)
+	waitC := make(chan bool)
 
+	go subscribe(readIpAddr, readerC, waitC, resultC)
 	// wait for benchmark to start
-	<-time.After(time.Until(nextMinute))
-	for i := 0; i < 100000; i++ {
-		_, err = shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo", Color: 0})
-		if err != nil {
-			logrus.Errorf("failed to append")
-			return
+	//<-time.After(time.Until(nextMinute))
+
+	time.Sleep(4 * time.Second)
+
+	curGsn := int64(0)
+	for j := 0; j < times; j++ {
+		fmt.Println(j)
+		from := curGsn
+		for i := 0; i < numOfRecords; i++ {
+			res, err := shardClient.Append(context.Background(), &pb.AppendRequest{Record: "Hallo", Color: 0})
+			if err != nil {
+				logrus.Errorf("failed to append")
+				return
+			}
+			curGsn = res.Gsn
 		}
-		now := time.Now()
-		if i%1000 == 0 {
-			result = append(result, &numTime{now, i})
-		}
+		readerC <- &fromTo{from: from, to: curGsn}
 	}
-	f, err := os.OpenFile("append.csv",
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Println(err)
-	}
-	defer f.Close()
-	for _, v := range result {
-		if _, err := f.WriteString(fmt.Sprintf("%v, %v\n", v.numOfRecs, v.time)); err != nil {
-			log.Println(err)
-		}
-	}
-	if _, err := f.WriteString(fmt.Sprintf("\n")); err != nil {
-		log.Println(err)
-	}
+	close(readerC)
+	<-waitC
+	fmt.Println("h2")
 }
 
-func subscribe(ipAddr string) error {
+func subscribe(ipAddr string, c chan *fromTo, finishedC chan bool, resultC chan time.Duration) error {
 	conn, err := grpc.Dial(ipAddr, grpc.WithInsecure())
 	if err != nil {
 		logrus.Errorf("Failed making connection to shard")
@@ -181,35 +179,31 @@ func subscribe(ipAddr string) error {
 	if err != nil {
 		return err
 	}
-	nextMinute := time.Now().Truncate(time.Minute).Add(time.Minute)
-	fmt.Printf("Read/Write benchmark scheduled for %v\n", nextMinute)
+	times := time.Duration(0)
 
-	<-time.After(time.Until(nextMinute))
-	result := make([]*numTime, 0)
-
-	for i := 0; i < 100000; i++ {
-		_, err := stream.Recv()
-		if err != nil {
-			return err
+	k := 0
+	curGsn := int64(0)
+	for fT := range c {
+		fmt.Println(fT.from, curGsn)
+		if fT.from < curGsn {
+			log.Fatalln("Oh no")
 		}
-		now := time.Now()
-		if i%1000 == 0 {
-			result = append(result, &numTime{now, i})
+		start := time.Now()
+		for i := fT.from; i < fT.to; {
+			in, err := stream.Recv()
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
+			curGsn = in.Gsn
+			i = curGsn
 		}
+		times += time.Since(start)
+		k++
 	}
-	f, err := os.OpenFile("append.csv",
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Println(err)
-	}
-	defer f.Close()
-	for _, v := range result {
-		if _, err := f.WriteString(fmt.Sprintf("%v, %v\n", v.numOfRecs, v.time)); err != nil {
-			log.Println(err)
-		}
-	}
-	if _, err := f.WriteString(fmt.Sprintf("\n")); err != nil {
-		log.Println(err)
-	}
+	fmt.Println("hi")
+	lat := time.Duration(times.Nanoseconds() / int64(k))
+	resultC <- lat
+	finishedC <- true
 	return nil
 }
