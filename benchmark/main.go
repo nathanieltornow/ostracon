@@ -162,6 +162,7 @@ func readWrite(ipAddr, readIpAddr string, numOfRecords, times int, resultC chan 
 			curGsn = res.Gsn
 		}
 		readerC <- &fromTo{from: from, to: curGsn}
+
 	}
 	close(readerC)
 	<-waitC
@@ -175,7 +176,6 @@ func subscribe(ipAddr string, c chan *fromTo, finishedC chan bool, resultC chan 
 	}
 	defer conn.Close()
 	sClient := pb.NewRecordShardClient(conn)
-	stream, err := sClient.Subscribe(context.Background(), &pb.ReadRequest{Gsn: 0, Color: 0})
 	if err != nil {
 		return err
 	}
@@ -184,6 +184,12 @@ func subscribe(ipAddr string, c chan *fromTo, finishedC chan bool, resultC chan 
 	k := 0
 	curGsn := int64(0)
 	for fT := range c {
+		ctx, cancel := context.WithCancel(context.Background())
+		stream, err := sClient.Subscribe(ctx, &pb.ReadRequest{Gsn: 0, Color: 0})
+		if err != nil {
+			cancel()
+			return err
+		}
 		fmt.Println(fT.from, curGsn)
 		if fT.from < curGsn {
 			log.Fatalln("Oh no")
@@ -192,6 +198,7 @@ func subscribe(ipAddr string, c chan *fromTo, finishedC chan bool, resultC chan 
 		for i := fT.from; i < fT.to; {
 			in, err := stream.Recv()
 			if err != nil {
+				cancel()
 				fmt.Println(err)
 				return err
 			}
@@ -200,6 +207,7 @@ func subscribe(ipAddr string, c chan *fromTo, finishedC chan bool, resultC chan 
 		}
 		times += time.Since(start)
 		k++
+		cancel()
 	}
 	fmt.Println("hi")
 	lat := time.Duration(times.Nanoseconds() / int64(k))
