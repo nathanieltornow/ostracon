@@ -42,30 +42,33 @@ func main() {
 
 	interval := time.Duration(time.Second.Nanoseconds() / int64(t.Ops))
 
-	resC := make(chan *bResult, len(t.ShardIps))
-	for i := 0; i < len(t.ShardIps); i++ {
-		go appendBenchmark(t.ShardIps[i], false, t.Runtime, interval, resC)
-	}
-	ovrOps := 0
-	ovrLat := time.Duration(0)
-	for i := 0; i < len(t.ShardIps); i++ {
-		res := <-resC
-		ovrOps += res.operations
-		ovrLat += res.overallLatency
-	}
-	ovrLat = time.Duration(ovrLat.Nanoseconds() / int64(len(t.ShardIps)))
-	fmt.Printf("Appended %v records in %v seconds with an average latency of %v\n", ovrOps, t.Runtime, ovrLat)
-	fmt.Printf("Throughput: %v ops/sec\n", float64(ovrOps)/t.Runtime.Seconds())
+	for j := 1; j < 100; j++ {
+		resC := make(chan *bResult, len(t.ShardIps))
+		for i := 0; i < j; i++ {
+			go appendBenchmark(t.ShardIps[0], false, t.Runtime, interval, resC)
+		}
+		ovrOps := 0
+		ovrLat := time.Duration(0)
+		for i := 0; i < len(t.ShardIps); i++ {
+			res := <-resC
+			ovrOps += res.operations
+			ovrLat += res.overallLatency
+		}
+		ovrLat = time.Duration(ovrLat.Nanoseconds() / int64(len(t.ShardIps)))
+		fmt.Printf("Appended %v records in %v seconds with an average latency of %v\n", ovrOps, t.Runtime, ovrLat)
+		fmt.Printf("Throughput: %v ops/sec\n", float64(ovrOps)/t.Runtime.Seconds())
 
-	f, err := os.OpenFile("result.csv",
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Println(err)
+		f, err := os.OpenFile("result.csv",
+			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Println(err)
+		}
+		defer f.Close()
+		if _, err := f.WriteString(fmt.Sprintf("%v, %v\n", float64(ovrOps)/t.Runtime.Seconds(), ovrLat.Microseconds())); err != nil {
+			log.Println(err)
+		}
 	}
-	defer f.Close()
-	if _, err := f.WriteString(fmt.Sprintf("%v, %v\n", float64(ovrOps)/t.Runtime.Seconds(), ovrLat.Microseconds())); err != nil {
-		log.Println(err)
-	}
+
 }
 
 func appendBenchmark(ipAddr string, isWriter bool, runtime time.Duration, interval time.Duration, resultC chan *bResult) {
