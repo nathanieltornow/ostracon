@@ -5,6 +5,7 @@ import (
 	"fmt"
 	pb "github.com/nathanieltornow/ostracon/recshard/recshardpb"
 	spb "github.com/nathanieltornow/ostracon/seqshard/seqshardpb"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"net"
 	"sync"
@@ -50,13 +51,13 @@ func (rs *RecordShard) Start(ipAddr, parentIpAddr string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println("Connected to SeqShard on", parentIpAddr)
+		logrus.Infoln("Connected to SeqShard on", parentIpAddr)
 	}
 	_, err = rs.addColor(0)
 	if err != nil {
 		return fmt.Errorf("couldn't start default color-service")
 	}
-	fmt.Println("Starting RecordShard")
+	logrus.Infoln("Starting RecordShard")
 	if err := grpcServer.Serve(lis); err != nil {
 		return err
 	}

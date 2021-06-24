@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/eiannone/keyboard"
 	"github.com/nathanieltornow/ostracon/client"
+	"github.com/sirupsen/logrus"
 	"os"
 )
 
@@ -19,7 +20,7 @@ var (
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage:\nAppending: ./ostracon -a -color <int> -record <string>\n\n"+
-			"Subscribing: ./ostracon -s -color <int> -gsn <int>")
+			"Subscribing: ./ostracon -s -color <int> -gsn <int>\n\n")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -32,12 +33,11 @@ func main() {
 	if *subscribeFlag {
 		fmt.Printf("Subscribing to color %v. Press 'q' to stop.\n", *color)
 		resultC := make(chan *client.Record, 64)
-		go func() {
-			err := client.Subscribe(*gsn, *color, resultC)
-			if err != nil {
-				panic(err)
-			}
-		}()
+		err := client.Subscribe(*gsn, *color, resultC)
+		if err != nil {
+			logrus.Errorln(err)
+			return
+		}
 		go func() {
 			for {
 				char, _, err := keyboard.GetSingleKey()
@@ -57,7 +57,8 @@ func main() {
 
 		rec, err := client.Append(*color, *record)
 		if err != nil {
-			panic(err)
+			logrus.Errorln(err)
+			return
 		}
 		fmt.Printf("Appended record \"%v\" with sequence number %v to color %v\n", rec.Record, rec.Gsn, rec.Color)
 	}

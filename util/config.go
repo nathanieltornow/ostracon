@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"time"
@@ -82,6 +83,10 @@ func GetReadShards(color int64) ([][]string, error) {
 			res[ind] = append(res[ind], shard.IP)
 		}
 	}
+	if len(res) == 0 {
+		return nil, fmt.Errorf("error: color isn't supported by this cluster")
+	}
+
 	return res, nil
 }
 

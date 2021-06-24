@@ -37,7 +37,7 @@ func Append(color int64, record string) (*Record, error) {
 
 	res, err := client.Append(ctx, &pb.AppendRequest{Record: record, Color: color})
 	if err != nil || res == nil {
-		return nil, fmt.Errorf("failed to append record\n")
+		return nil, fmt.Errorf("failed to append record. Is the cluster running?\n")
 	}
 	return &Record{Record: res.Record, Gsn: res.Gsn, Color: res.Color}, nil
 
